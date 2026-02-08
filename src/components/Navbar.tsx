@@ -1,7 +1,8 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Lock, Key, UserPlus } from 'lucide-react';
+import { Home, Lock, Key, UserPlus, LogIn, Menu, X } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { useState } from 'react';
 
 function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
@@ -9,12 +10,14 @@ function cn(...inputs: (string | undefined | null | false)[]) {
 
 export function Navbar() {
   const location = useLocation();
+  const [isOpen, setIsOpen] = useState(false);
 
   const navItems = [
     { path: '/', label: '首页', icon: Home },
     { path: '/encrypt', label: '加密工坊', icon: Lock },
     { path: '/my', label: '密钥中心', icon: Key },
-    { path: '/register', label: '极速入驻', icon: UserPlus },
+    { path: '/register', label: '注册', icon: UserPlus },
+    { path: '/login', label: '登录', icon: LogIn },
   ];
 
   return (
@@ -51,10 +54,48 @@ export function Navbar() {
             </div>
           </div>
           <div className="flex items-center sm:hidden">
-            {/* Mobile menu button could go here */}
+            <button
+              onClick={() => setIsOpen(!isOpen)}
+              className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500"
+            >
+              <span className="sr-only">Open main menu</span>
+              {isOpen ? (
+                <X className="block h-6 w-6" aria-hidden="true" />
+              ) : (
+                <Menu className="block h-6 w-6" aria-hidden="true" />
+              )}
+            </button>
           </div>
         </div>
       </div>
+
+      {/* Mobile menu, show/hide based on menu state. */}
+      {isOpen && (
+        <div className="sm:hidden">
+          <div className="pt-2 pb-3 space-y-1">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = location.pathname === item.path;
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  onClick={() => setIsOpen(false)}
+                  className={cn(
+                    'flex items-center px-3 py-2 border-l-4 text-base font-medium',
+                    isActive
+                      ? 'bg-indigo-50 border-indigo-500 text-indigo-700'
+                      : 'border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700'
+                  )}
+                >
+                  <Icon className="w-4 h-4 mr-3" />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </nav>
   );
 }
