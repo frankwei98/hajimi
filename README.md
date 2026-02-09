@@ -56,6 +56,31 @@
 
 * * * * *
 
+🌍 后端 API
+------
+
+> 非强制要求。但如果环境变量没有给到后端地址，那用户体系、长密文分享等功能将无法使用。
+> 目前打算基于 Cloudflare Worker 简单实现后端功能。
+
+### /publish *发布长密文*
+
+-   **请求体：**
+    -   `encryptedBlob: string`
+    -   `userHandle: string`
+    -   `recipientHandle: string`
+    -   `cf-turnstile-response: string`
+    -   `removeAt?: number` (可选，默认 0，单位 ms)
+
+-   **响应体：**
+    -   `success: boolean`
+    -   `messageId: string`
+
+### /m/{messageId} *获取长密文*
+-   **响应体：**
+    -   `success: boolean`
+    -   `encryptedBlob: string`
+
+
 🚀 技术栈
 ------
 
@@ -65,7 +90,7 @@
 
 -   **Crypto:** [noble-curves](https://github.com/paulmillr/noble-curves) (High-audit cryptographic primitives)
 
--   **Storage:** IndexedDB (Local) + Supabase (Optional for Link Mode)
+-   **Storage:** IndexedDB (Local) + Cloudflare Worker + Supabase (Optional for Link Mode)
 
 🛡 安全声明
 -------
