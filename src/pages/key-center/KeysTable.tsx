@@ -1,3 +1,4 @@
+import { Check, Copy } from 'lucide-react';
 import type { StoredKey } from '../../lib/storage/types';
 
 type KeysTableProps = {
@@ -43,20 +44,40 @@ export function KeysTable({
                 {new Date(entry.createdAt).toLocaleString()}
               </td>
               <td className="px-4 py-3">
-                <div className="break-all font-mono text-gray-900">{entry.publicKeyBech32}</div>
-                <div className="mt-2 text-xs text-gray-500">公钥 hex: {entry.publicKeyHex}</div>
+                <div className="flex items-center gap-2 group">
+                  <div
+                    onClick={() => onCopy(`pub-${entry.id}`, entry.publicKeyBech32)}
+                    className="break-all font-mono text-gray-900 cursor-pointer hover:text-blue-600 transition-colors"
+                    title="点击复制"
+                  >
+                    {entry.publicKeyBech32}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => onCopy(`pub-${entry.id}`, entry.publicKeyBech32)}
+                    className="flex-shrink-0 p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                    title="复制公钥"
+                  >
+                    {copiedField === `pub-${entry.id}` ? (
+                      <Check className="h-3.5 w-3.5 text-emerald-500" />
+                    ) : (
+                      <Copy className="h-3.5 w-3.5" />
+                    )}
+                  </button>
+                </div>
+                {/* <div className="mt-2 text-xs text-gray-500">公钥 hex: {entry.publicKeyHex}</div> */}
               </td>
               <td className="px-4 py-3 text-gray-600">
                 {entry.source === 'webcrypto' ? 'WebCrypto' : 'noble'}
               </td>
               <td className="px-4 py-3 text-right space-x-3">
-                <button
+                {/* <button
                   type="button"
                   onClick={() => onCopy(`pub-${entry.id}`, entry.publicKeyBech32)}
                   className="text-xs font-medium text-gray-700 hover:text-gray-900"
                 >
                   {copiedField === `pub-${entry.id}` ? '已复制' : '复制公钥'}
-                </button>
+                </button> */}
                 <button
                   type="button"
                   onClick={() => onToggleReveal(entry)}

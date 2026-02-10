@@ -1,40 +1,64 @@
-import { bech32 } from 'bech32';
-import { x25519 } from '@noble/curves/ed25519.js';
+import { bech32 } from "bech32";
+import { x25519 } from "@noble/curves/ed25519.js";
 
 export type X25519Keypair = {
   publicKeyBytes: Uint8Array;
   privateKeyBytes: Uint8Array;
   publicKeyBech32: string;
-  source: 'webcrypto' | 'noble';
+  source: "webcrypto" | "noble";
 };
 
-const PUBLIC_KEY_PREFIX = 'hajimi';
+const PUBLIC_KEY_PREFIX = "hajimi";
 
 function encodeBech32(bytes: Uint8Array) {
   return bech32.encode(PUBLIC_KEY_PREFIX, bech32.toWords(bytes));
 }
 
+function base64UrlToBytes(input: string): Uint8Array {
+  const base64 = input.replace(/-/g, "+").replace(/_/g, "/");
+  const padLen = (4 - (base64.length % 4)) % 4;
+  const padded = base64 + "=".repeat(padLen);
+  const bin = atob(padded);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i += 1) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
 async function tryWebCrypto(): Promise<X25519Keypair | null> {
   if (!globalThis.crypto?.subtle) return null;
   try {
-    const keyPair = await crypto.subtle.generateKey(
-      { name: 'X25519' },
-      true,
-      ['deriveKey', 'deriveBits']
-    );
+    const keyPair = await crypto.subtle.generateKey({ name: "X25519" }, true, [
+      "deriveKey",
+      "deriveBits",
+    ]);
+    console.log("tryWebCrypto", keyPair);
     const publicKeyBytes = new Uint8Array(
-      await crypto.subtle.exportKey('raw', keyPair.publicKey)
+      await crypto.subtle.exportKey(
+        "raw",
+        (keyPair as CryptoKeyPair).publicKey,
+      ),
     );
-    const privateKeyBytes = new Uint8Array(
-      await crypto.subtle.exportKey('raw', keyPair.privateKey)
-    );
+    const jwk = (await crypto.subtle.exportKey(
+      "jwk",
+      (keyPair as CryptoKeyPair).privateKey,
+    )) as JsonWebKey;
+    if (!jwk.d) throw new Error("Missing JWK private key material");
+    const privateKeyBytes = base64UrlToBytes(jwk.d);
+    console.log("tryWebCrypto", {
+      publicKeyBytes,
+      privateKeyBytes,
+      publicKeyBech32: encodeBech32(publicKeyBytes),
+      source: "webcrypto",
+    });
+
     return {
       publicKeyBytes,
       privateKeyBytes,
       publicKeyBech32: encodeBech32(publicKeyBytes),
-      source: 'webcrypto',
+      source: "webcrypto",
     };
-  } catch {
+  } catch (error) {
+    console.error("tryWebCrypto::error:", error);
     return null;
   }
 }
@@ -47,7 +71,7 @@ function generateWithNoble(): X25519Keypair {
     publicKeyBytes,
     privateKeyBytes,
     publicKeyBech32: encodeBech32(publicKeyBytes),
-    source: 'noble',
+    source: "noble",
   };
 }
 
