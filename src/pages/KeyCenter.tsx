@@ -1,123 +1,18 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { PinInput } from '../components/PinInput';
+import { useEffect, useMemo, useState } from 'react';
 import { generateX25519Keypair } from '../lib/crypto/x25519';
+import {
+  decryptExportPayload,
+  decryptPrivateKey,
+  encryptExportPayload,
+  encryptPrivateKey,
+  toHex,
+  EXPORT_VERSION,
+} from '../lib/crypto/keyVault';
 import { addKey, deleteKey, listKeys, putKeys } from '../lib/storage/keyStore';
 import type { StoredKey } from '../lib/storage/types';
-
-function toHex(bytes: Uint8Array) {
-  return Array.from(bytes)
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
-}
-
-const KDF_ITERATIONS = 150_000;
-const EXPORT_VERSION = 1;
-
-function bytesToBase64(bytes: Uint8Array) {
-  let binary = '';
-  bytes.forEach((b) => {
-    binary += String.fromCharCode(b);
-  });
-  return btoa(binary);
-}
-
-function base64ToBytes(base64: string) {
-  const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i += 1) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return bytes;
-}
-
-async function deriveAesKey(passphrase: string, salt: Uint8Array, iterations: number) {
-  const encoder = new TextEncoder();
-  const baseKey = await crypto.subtle.importKey(
-    'raw',
-    encoder.encode(passphrase),
-    'PBKDF2',
-    false,
-    ['deriveKey']
-  );
-  return crypto.subtle.deriveKey(
-    {
-      name: 'PBKDF2',
-      salt,
-      iterations,
-      hash: 'SHA-256',
-    },
-    baseKey,
-    { name: 'AES-GCM', length: 256 },
-    false,
-    ['encrypt', 'decrypt']
-  );
-}
-
-async function encryptPrivateKey(privateKeyBytes: Uint8Array, passphrase: string) {
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  const salt = crypto.getRandomValues(new Uint8Array(16));
-  const key = await deriveAesKey(passphrase, salt, KDF_ITERATIONS);
-  const ciphertext = await crypto.subtle.encrypt(
-    { name: 'AES-GCM', iv },
-    key,
-    privateKeyBytes
-  );
-  return {
-    encryptedPrivateKey: bytesToBase64(new Uint8Array(ciphertext)),
-    iv: bytesToBase64(iv),
-    salt: bytesToBase64(salt),
-    kdfIterations: KDF_ITERATIONS,
-  };
-}
-
-async function decryptPrivateKey(entry: StoredKey, passphrase: string) {
-  const iv = base64ToBytes(entry.iv);
-  const salt = base64ToBytes(entry.salt);
-  const key = await deriveAesKey(passphrase, salt, entry.kdfIterations);
-  const plaintext = await crypto.subtle.decrypt(
-    { name: 'AES-GCM', iv },
-    key,
-    base64ToBytes(entry.encryptedPrivateKey)
-  );
-  return new Uint8Array(plaintext);
-}
-
-async function encryptExportPayload(payload: object, passphrase: string) {
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  const salt = crypto.getRandomValues(new Uint8Array(16));
-  const key = await deriveAesKey(passphrase, salt, KDF_ITERATIONS);
-  const plaintext = new TextEncoder().encode(JSON.stringify(payload));
-  const ciphertext = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, plaintext);
-  return {
-    version: EXPORT_VERSION,
-    kdfIterations: KDF_ITERATIONS,
-    salt: bytesToBase64(salt),
-    iv: bytesToBase64(iv),
-    data: bytesToBase64(new Uint8Array(ciphertext)),
-  };
-}
-
-async function decryptExportPayload(
-  packageData: {
-    version: number;
-    kdfIterations: number;
-    salt: string;
-    iv: string;
-    data: string;
-  },
-  passphrase: string
-) {
-  const iv = base64ToBytes(packageData.iv);
-  const salt = base64ToBytes(packageData.salt);
-  const key = await deriveAesKey(passphrase, salt, packageData.kdfIterations);
-  const plaintext = await crypto.subtle.decrypt(
-    { name: 'AES-GCM', iv },
-    key,
-    base64ToBytes(packageData.data)
-  );
-  const decoded = new TextDecoder().decode(plaintext);
-  return JSON.parse(decoded) as { keys: StoredKey[]; exportedAt: string; version: number };
-}
+import { KeyCenterOnboarding } from './key-center/KeyCenterOnboarding';
+import { KeyCenterUnlock } from './key-center/KeyCenterUnlock';
+import { KeyCenterDashboard } from './key-center/KeyCenterDashboard';
 
 export function KeyCenter() {
   const [keys, setKeys] = useState<StoredKey[]>([]);
@@ -132,7 +27,6 @@ export function KeyCenter() {
   const [isLoadingKeys, setIsLoadingKeys] = useState(true);
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [initMode, setInitMode] = useState<'create' | 'import'>('create');
-  const importInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     listKeys()
@@ -331,9 +225,7 @@ export function KeyCenter() {
     } catch {
       setError('导入失败或 PIN 错误');
     } finally {
-      if (importInputRef.current) {
-        importInputRef.current.value = '';
-      }
+      // input reset handled by component
     }
   };
 
@@ -401,358 +293,54 @@ export function KeyCenter() {
   if (!isUnlocked) {
     if (keys.length === 0) {
       return (
-        <div className="bg-white shadow sm:rounded-lg p-6 space-y-6">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">👋 欢迎使用密钥中心</h2>
-            <p className="text-gray-500">
-              请设置一个 PIN 码用于加密您的私钥，或导入已有备份。
-            </p>
-          </div>
-
-          <div className="flex border-b border-gray-200">
-            <button
-              type="button"
-              className={`px-4 py-2 text-sm font-medium border-b-2 ${
-                initMode === 'create'
-                  ? 'border-gray-900 text-gray-900'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-              onClick={() => {
-                setInitMode('create');
-                setPin('');
-                setConfirmPin('');
-                setError(null);
-                setNotice(null);
-              }}
-            >
-              创建新库
-            </button>
-            <button
-              type="button"
-              className={`px-4 py-2 text-sm font-medium border-b-2 ${
-                initMode === 'import'
-                  ? 'border-gray-900 text-gray-900'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-              onClick={() => {
-                setInitMode('import');
-                setPin('');
-                setConfirmPin('');
-                setError(null);
-                setNotice(null);
-              }}
-            >
-              恢复备份
-            </button>
-          </div>
-
-          {initMode === 'create' ? (
-            <div className="flex flex-col items-center gap-6 py-4">
-              <div className="space-y-4 w-full max-w-xs">
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
-                    设置 6 位 PIN
-                  </label>
-                  <PinInput
-                    value={pin}
-                    onChange={setPin}
-                    autoFocus
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
-                    确认 PIN
-                  </label>
-                  <PinInput
-                    value={confirmPin}
-                    onChange={setConfirmPin}
-                    onEnter={handleInitCreate}
-                  />
-                </div>
-              </div>
-
-              {error && (
-                <div className="text-sm text-red-600 font-medium animate-pulse">{error}</div>
-              )}
-
-              <button
-                type="button"
-                onClick={handleInitCreate}
-                className="inline-flex items-center justify-center rounded-md bg-gray-900 px-8 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800"
-              >
-                创建加密库
-              </button>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center gap-6 py-4">
-              <div className="space-y-4 w-full max-w-xs">
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
-                    输入备份文件的 PIN
-                  </label>
-                  <PinInput
-                    value={pin}
-                    onChange={setPin}
-                    autoFocus
-                  />
-                </div>
-
-                <div className="text-center pt-2">
-                  <input
-                    ref={importInputRef}
-                    type="file"
-                    accept="application/json"
-                    className="hidden"
-                    onChange={(event) => {
-                      const file = event.target.files?.[0];
-                      if (file) {
-                        void handleImport(file, () => setIsUnlocked(true));
-                      }
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (!/^\d{6}$/.test(pin)) {
-                        setError('请先输入 6 位 PIN');
-                        return;
-                      }
-                      importInputRef.current?.click();
-                    }}
-                    className="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
-                  >
-                    选择备份文件并导入
-                  </button>
-                </div>
-              </div>
-
-              {error && (
-                <div className="text-sm text-red-600 font-medium animate-pulse">{error}</div>
-              )}
-              {notice && <div className="text-sm text-emerald-600 font-medium">{notice}</div>}
-            </div>
-          )}
-        </div>
+        <KeyCenterOnboarding
+          initMode={initMode}
+          pin={pin}
+          confirmPin={confirmPin}
+          error={error}
+          notice={notice}
+          onModeChange={(mode) => {
+            setInitMode(mode);
+            setPin('');
+            setConfirmPin('');
+            setError(null);
+            setNotice(null);
+          }}
+          onPinChange={setPin}
+          onConfirmPinChange={setConfirmPin}
+          onCreate={handleInitCreate}
+          onImport={handleImport}
+          onImported={() => setIsUnlocked(true)}
+        />
       );
     }
 
-    return (
-      <div className="bg-white shadow sm:rounded-lg p-6 space-y-6">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">🔐 密钥中心已锁定</h2>
-          <p className="text-gray-500">检测到本地存储了密钥，请输入 PIN 以解锁。</p>
-        </div>
-
-        <div className="flex flex-col items-center gap-6 py-8">
-          <PinInput
-            value={pin}
-            onChange={setPin}
-            onEnter={handleUnlock}
-            autoFocus
-          />
-
-          {error && (
-            <div className="text-sm text-red-600 font-medium animate-pulse">{error}</div>
-          )}
-
-          <button
-            type="button"
-            onClick={handleUnlock}
-            className="inline-flex items-center justify-center rounded-md bg-gray-900 px-8 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900"
-          >
-            立即解锁
-          </button>
-        </div>
-      </div>
-    );
+    return <KeyCenterUnlock pin={pin} error={error} onPinChange={setPin} onUnlock={handleUnlock} />;
   }
 
   return (
-    <div className="bg-white shadow sm:rounded-lg p-6 space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">⚙️ 密钥中心</h2>
-        <p className="text-gray-500">管理本地密钥对与加解密设置。</p>
-      </div>
-
-      <div className="border-t border-gray-200 pt-6 space-y-4">
-        <div className="flex flex-wrap items-center gap-3">
-          <PinInput
-            value={pin}
-            onChange={setPin}
-          />
-          <button
-            type="button"
-            onClick={handleGenerate}
-            disabled={isGenerating}
-            className="inline-flex items-center rounded-md bg-gray-900 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-gray-800 disabled:opacity-60"
-          >
-            {isGenerating ? '生成中...' : '生成 X25519 密钥对'}
-          </button>
-          <span className="text-xs text-gray-500">{keysCountLabel}</span>
-        </div>
-        <div className="text-xs text-gray-500">
-          私钥会用 6 位 PIN 派生的 AES-GCM 加密后写入 IndexedDB（明文不会存储）。忘记 PIN 将无法解密。
-        </div>
-
-        {notice && (
-          <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-            {notice}
-          </div>
-        )}
-
-        {error && (
-          <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {error}
-          </div>
-        )}
-
-        <div className="flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={handleExport}
-            className="inline-flex items-center rounded-md border border-gray-300 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50"
-          >
-            导出密钥包
-          </button>
-          <input
-            ref={importInputRef}
-            type="file"
-            accept="application/json"
-            className="hidden"
-            onChange={(event) => {
-              const file = event.target.files?.[0];
-              if (file) {
-                void handleImport(file);
-              }
-            }}
-          />
-          <button
-            type="button"
-            onClick={() => importInputRef.current?.click()}
-            className="inline-flex items-center rounded-md border border-gray-300 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50"
-          >
-            导入密钥包
-          </button>
-        </div>
-
-        {keys.length === 0 ? (
-          <div className="rounded-md border border-gray-200 bg-gray-50 px-4 py-6 text-sm text-gray-500">
-            生成后会保存到 IndexedDB，并在下方表格中展示公钥信息。
-          </div>
-        ) : (
-          <div className="overflow-x-auto rounded-md border border-gray-200">
-            <table className="min-w-full divide-y divide-gray-200 text-sm">
-              <thead className="bg-gray-50 text-xs font-semibold uppercase text-gray-500">
-                <tr>
-                  <th className="px-4 py-3 text-left">创建时间</th>
-                  <th className="px-4 py-3 text-left">公钥（bech32）</th>
-                  <th className="px-4 py-3 text-left">来源</th>
-                  <th className="px-4 py-3 text-right">操作</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200 bg-white">
-                {keys.map((entry) => (
-                  <tr key={entry.id}>
-                    <td className="px-4 py-3 text-gray-700">
-                      {new Date(entry.createdAt).toLocaleString()}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="break-all font-mono text-gray-900">
-                        {entry.publicKeyBech32}
-                      </div>
-                      <div className="mt-2 text-xs text-gray-500">
-                        公钥 hex: {entry.publicKeyHex}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-gray-600">
-                      {entry.source === 'webcrypto' ? 'WebCrypto' : 'noble'}
-                    </td>
-                    <td className="px-4 py-3 text-right space-x-3">
-                      <button
-                        type="button"
-                        onClick={() => handleCopy(`pub-${entry.id}`, entry.publicKeyBech32)}
-                        className="text-xs font-medium text-gray-700 hover:text-gray-900"
-                      >
-                        {copiedField === `pub-${entry.id}` ? '已复制' : '复制公钥'}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleToggleReveal(entry)}
-                        className="text-xs font-medium text-amber-700 hover:text-amber-900"
-                      >
-                        {revealedKeys[entry.id] ? '隐藏私钥' : '显示私钥'}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(entry.id)}
-                        className="text-xs font-medium text-red-600 hover:text-red-700"
-                      >
-                        删除
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {Object.keys(revealedKeys).length > 0 && (
-          <div className="rounded-md border border-amber-200 bg-amber-50 p-4 space-y-2">
-            <div className="text-xs text-amber-700">已解锁私钥（hex）</div>
-            {Object.entries(revealedKeys).map(([id, value]) => (
-              <div key={id} className="break-all font-mono text-sm text-amber-900">
-                {value}
-              </div>
-            ))}
-            <button
-              type="button"
-              onClick={() => setRevealedKeys({})}
-              className="text-xs font-medium text-amber-800 hover:text-amber-900"
-            >
-              一键隐藏
-            </button>
-          </div>
-        )}
-
-        <div className="rounded-md border border-gray-200 bg-gray-50 p-4 space-y-3">
-          <div className="text-sm font-semibold text-gray-800">PIN 修改</div>
-          <div className="flex flex-wrap items-center gap-3">
-            <input
-              type="password"
-              inputMode="numeric"
-              placeholder="新 PIN"
-              value={newPin}
-              onChange={(event) => {
-                const next = event.target.value.replace(/\D/g, '').slice(0, 6);
-                setNewPin(next);
-              }}
-              className="w-28 rounded-md border border-gray-300 px-3 py-2 text-xs text-gray-900 shadow-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
-            />
-            <input
-              type="password"
-              inputMode="numeric"
-              placeholder="确认新 PIN"
-              value={confirmPin}
-              onChange={(event) => {
-                const next = event.target.value.replace(/\D/g, '').slice(0, 6);
-                setConfirmPin(next);
-              }}
-              className="w-28 rounded-md border border-gray-300 px-3 py-2 text-xs text-gray-900 shadow-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
-            />
-            <button
-              type="button"
-              onClick={handlePinChange}
-              className="inline-flex items-center rounded-md bg-gray-900 px-3 py-2 text-xs font-semibold text-white shadow hover:bg-gray-800"
-            >
-              更新 PIN
-            </button>
-          </div>
-          <div className="text-xs text-gray-500">
-            更新 PIN 会重新加密全部私钥，过程可能需要几秒。
-          </div>
-        </div>
-      </div>
-    </div>
+    <KeyCenterDashboard
+      pin={pin}
+      keysCountLabel={keysCountLabel}
+      isGenerating={isGenerating}
+      notice={notice}
+      error={error}
+      keys={keys}
+      copiedField={copiedField}
+      revealedKeys={revealedKeys}
+      newPin={newPin}
+      confirmPin={confirmPin}
+      onPinChange={setPin}
+      onGenerate={handleGenerate}
+      onExport={handleExport}
+      onImport={(file) => handleImport(file)}
+      onCopy={handleCopy}
+      onToggleReveal={handleToggleReveal}
+      onDelete={(entryId) => void handleDelete(entryId)}
+      onHideRevealed={() => setRevealedKeys({})}
+      onNewPinChange={setNewPin}
+      onConfirmPinChange={setConfirmPin}
+      onPinUpdate={handlePinChange}
+    />
   );
 }

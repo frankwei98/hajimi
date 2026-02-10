@@ -1,0 +1,81 @@
+import type { StoredKey } from '../../lib/storage/types';
+
+type KeysTableProps = {
+  keys: StoredKey[];
+  copiedField: string | null;
+  onCopy: (label: string, value: string) => void;
+  onToggleReveal: (entry: StoredKey) => void;
+  onDelete: (entryId: string) => void;
+  revealedKeys: Record<string, string>;
+};
+
+export function KeysTable({
+  keys,
+  copiedField,
+  onCopy,
+  onToggleReveal,
+  onDelete,
+  revealedKeys,
+}: KeysTableProps) {
+  if (keys.length === 0) {
+    return (
+      <div className="rounded-md border border-gray-200 bg-gray-50 px-4 py-6 text-sm text-gray-500">
+        生成后会保存到 IndexedDB，并在下方表格中展示公钥信息。
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-x-auto rounded-md border border-gray-200">
+      <table className="min-w-full divide-y divide-gray-200 text-sm">
+        <thead className="bg-gray-50 text-xs font-semibold uppercase text-gray-500">
+          <tr>
+            <th className="px-4 py-3 text-left">创建时间</th>
+            <th className="px-4 py-3 text-left">公钥（bech32）</th>
+            <th className="px-4 py-3 text-left">来源</th>
+            <th className="px-4 py-3 text-right">操作</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-gray-200 bg-white">
+          {keys.map((entry) => (
+            <tr key={entry.id}>
+              <td className="px-4 py-3 text-gray-700">
+                {new Date(entry.createdAt).toLocaleString()}
+              </td>
+              <td className="px-4 py-3">
+                <div className="break-all font-mono text-gray-900">{entry.publicKeyBech32}</div>
+                <div className="mt-2 text-xs text-gray-500">公钥 hex: {entry.publicKeyHex}</div>
+              </td>
+              <td className="px-4 py-3 text-gray-600">
+                {entry.source === 'webcrypto' ? 'WebCrypto' : 'noble'}
+              </td>
+              <td className="px-4 py-3 text-right space-x-3">
+                <button
+                  type="button"
+                  onClick={() => onCopy(`pub-${entry.id}`, entry.publicKeyBech32)}
+                  className="text-xs font-medium text-gray-700 hover:text-gray-900"
+                >
+                  {copiedField === `pub-${entry.id}` ? '已复制' : '复制公钥'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onToggleReveal(entry)}
+                  className="text-xs font-medium text-amber-700 hover:text-amber-900"
+                >
+                  {revealedKeys[entry.id] ? '隐藏私钥' : '显示私钥'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onDelete(entry.id)}
+                  className="text-xs font-medium text-red-600 hover:text-red-700"
+                >
+                  删除
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
