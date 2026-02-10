@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { PinInput } from '../components/PinInput';
 import { generateX25519Keypair } from '../lib/crypto/x25519';
 import { addKey, deleteKey, listKeys, putKeys } from '../lib/storage/keyStore';
 import type { StoredKey } from '../lib/storage/types';
@@ -128,7 +129,9 @@ export function KeyCenter() {
   const [newPin, setNewPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
   const [revealedKeys, setRevealedKeys] = useState<Record<string, string>>({});
-  const pinInputRef = useRef<HTMLInputElement | null>(null);
+  const [isLoadingKeys, setIsLoadingKeys] = useState(true);
+  const [isUnlocked, setIsUnlocked] = useState(false);
+  const [initMode, setInitMode] = useState<'create' | 'import'>('create');
   const importInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -139,6 +142,9 @@ export function KeyCenter() {
       })
       .catch(() => {
         setError('读取本地密钥失败');
+      })
+      .finally(() => {
+        setIsLoadingKeys(false);
       });
   }, []);
 
@@ -146,6 +152,23 @@ export function KeyCenter() {
     if (keys.length === 0) return '暂无密钥';
     return `已保存 ${keys.length} 把密钥`;
   }, [keys.length]);
+
+  const handleUnlock = async () => {
+    if (!/^\d{6}$/.test(pin)) {
+      setError('请输入 6 位 PIN 以解锁');
+      return;
+    }
+    setError(null);
+    setNotice(null);
+    try {
+      if (keys.length > 0) {
+        await decryptPrivateKey(keys[0], pin);
+      }
+      setIsUnlocked(true);
+    } catch {
+      setError('PIN 错误，解锁失败');
+    }
+  };
 
   const handleGenerate = async () => {
     if (!/^\d{6}$/.test(pin)) {
@@ -265,7 +288,7 @@ export function KeyCenter() {
     }
   };
 
-  const handleImport = async (file: File) => {
+  const handleImport = async (file: File, onSuccess?: () => void) => {
     if (!/^\d{6}$/.test(pin)) {
       setError('请输入 6 位数字 PIN 以导入');
       return;
@@ -295,6 +318,7 @@ export function KeyCenter() {
         }));
       if (incoming.length === 0) {
         setNotice('没有可导入的新密钥');
+        if (keys.length === 0 && onSuccess) onSuccess();
         return;
       }
       await putKeys(incoming);
@@ -303,6 +327,7 @@ export function KeyCenter() {
       );
       setKeys(merged);
       setNotice(`已导入 ${incoming.length} 把密钥`);
+      onSuccess?.();
     } catch {
       setError('导入失败或 PIN 错误');
     } finally {
@@ -310,6 +335,20 @@ export function KeyCenter() {
         importInputRef.current.value = '';
       }
     }
+  };
+
+  const handleInitCreate = () => {
+    if (!/^\d{6}$/.test(pin)) {
+      setError('请设置 6 位数字 PIN');
+      return;
+    }
+    if (pin !== confirmPin) {
+      setError('两次输入的 PIN 不一致');
+      return;
+    }
+    setError(null);
+    setNotice(null);
+    setIsUnlocked(true);
   };
 
   const handlePinChange = async () => {
@@ -351,6 +390,183 @@ export function KeyCenter() {
     }
   };
 
+  if (isLoadingKeys) {
+    return (
+      <div className="bg-white shadow sm:rounded-lg p-12 text-center text-gray-500">
+        正在加载密钥库...
+      </div>
+    );
+  }
+
+  if (!isUnlocked) {
+    if (keys.length === 0) {
+      return (
+        <div className="bg-white shadow sm:rounded-lg p-6 space-y-6">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">👋 欢迎使用密钥中心</h2>
+            <p className="text-gray-500">
+              请设置一个 PIN 码用于加密您的私钥，或导入已有备份。
+            </p>
+          </div>
+
+          <div className="flex border-b border-gray-200">
+            <button
+              type="button"
+              className={`px-4 py-2 text-sm font-medium border-b-2 ${
+                initMode === 'create'
+                  ? 'border-gray-900 text-gray-900'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+              onClick={() => {
+                setInitMode('create');
+                setPin('');
+                setConfirmPin('');
+                setError(null);
+                setNotice(null);
+              }}
+            >
+              创建新库
+            </button>
+            <button
+              type="button"
+              className={`px-4 py-2 text-sm font-medium border-b-2 ${
+                initMode === 'import'
+                  ? 'border-gray-900 text-gray-900'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+              onClick={() => {
+                setInitMode('import');
+                setPin('');
+                setConfirmPin('');
+                setError(null);
+                setNotice(null);
+              }}
+            >
+              恢复备份
+            </button>
+          </div>
+
+          {initMode === 'create' ? (
+            <div className="flex flex-col items-center gap-6 py-4">
+              <div className="space-y-4 w-full max-w-xs">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    设置 6 位 PIN
+                  </label>
+                  <PinInput
+                    value={pin}
+                    onChange={setPin}
+                    autoFocus
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    确认 PIN
+                  </label>
+                  <PinInput
+                    value={confirmPin}
+                    onChange={setConfirmPin}
+                    onEnter={handleInitCreate}
+                  />
+                </div>
+              </div>
+
+              {error && (
+                <div className="text-sm text-red-600 font-medium animate-pulse">{error}</div>
+              )}
+
+              <button
+                type="button"
+                onClick={handleInitCreate}
+                className="inline-flex items-center justify-center rounded-md bg-gray-900 px-8 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800"
+              >
+                创建加密库
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center gap-6 py-4">
+              <div className="space-y-4 w-full max-w-xs">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    输入备份文件的 PIN
+                  </label>
+                  <PinInput
+                    value={pin}
+                    onChange={setPin}
+                    autoFocus
+                  />
+                </div>
+
+                <div className="text-center pt-2">
+                  <input
+                    ref={importInputRef}
+                    type="file"
+                    accept="application/json"
+                    className="hidden"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      if (file) {
+                        void handleImport(file, () => setIsUnlocked(true));
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!/^\d{6}$/.test(pin)) {
+                        setError('请先输入 6 位 PIN');
+                        return;
+                      }
+                      importInputRef.current?.click();
+                    }}
+                    className="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+                  >
+                    选择备份文件并导入
+                  </button>
+                </div>
+              </div>
+
+              {error && (
+                <div className="text-sm text-red-600 font-medium animate-pulse">{error}</div>
+              )}
+              {notice && <div className="text-sm text-emerald-600 font-medium">{notice}</div>}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    return (
+      <div className="bg-white shadow sm:rounded-lg p-6 space-y-6">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">🔐 密钥中心已锁定</h2>
+          <p className="text-gray-500">检测到本地存储了密钥，请输入 PIN 以解锁。</p>
+        </div>
+
+        <div className="flex flex-col items-center gap-6 py-8">
+          <PinInput
+            value={pin}
+            onChange={setPin}
+            onEnter={handleUnlock}
+            autoFocus
+          />
+
+          {error && (
+            <div className="text-sm text-red-600 font-medium animate-pulse">{error}</div>
+          )}
+
+          <button
+            type="button"
+            onClick={handleUnlock}
+            className="inline-flex items-center justify-center rounded-md bg-gray-900 px-8 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900"
+          >
+            立即解锁
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white shadow sm:rounded-lg p-6 space-y-6">
       <div>
@@ -360,42 +576,10 @@ export function KeyCenter() {
 
       <div className="border-t border-gray-200 pt-6 space-y-4">
         <div className="flex flex-wrap items-center gap-3">
-          <div
-            className="relative"
-            onClick={() => pinInputRef.current?.focus()}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault();
-                pinInputRef.current?.focus();
-              }
-            }}
-          >
-            <input
-              ref={pinInputRef}
-              type="password"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              aria-label="输入 6 位 PIN"
-              value={pin}
-              onChange={(event) => {
-                const next = event.target.value.replace(/\D/g, '').slice(0, 6);
-                setPin(next);
-              }}
-              className="absolute inset-0 h-full w-full opacity-0"
-            />
-            <div className="flex gap-2">
-              {Array.from({ length: 6 }).map((_, index) => (
-                <div
-                  key={index}
-                  className="flex h-10 w-10 items-center justify-center rounded-md border border-gray-300 bg-white text-base font-mono text-gray-900"
-                >
-                  {pin[index] ?? ''}
-                </div>
-              ))}
-            </div>
-          </div>
+          <PinInput
+            value={pin}
+            onChange={setPin}
+          />
           <button
             type="button"
             onClick={handleGenerate}
