@@ -1,4 +1,5 @@
-import { useEncryptComposer, TITLE_LIMIT, CONTENT_LIMIT } from './encrypt/hooks/useEncryptComposer';
+import { useEncryptComposer } from './encrypt/hooks/useEncryptComposer';
+import { TITLE_LIMIT, CONTENT_LIMIT } from './encrypt/constants';
 import { EncryptHeader } from './encrypt/components/EncryptHeader';
 import { RecipientInputPanel } from './encrypt/components/RecipientInputPanel';
 import { RecipientKeyPicker } from './encrypt/components/RecipientKeyPicker';

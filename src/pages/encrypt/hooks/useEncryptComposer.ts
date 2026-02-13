@@ -6,9 +6,7 @@ import { decodeBech32PublicKey, isHajimiPublicKey } from '../../../lib/crypto/x2
 import { encryptForRecipients, envelopeToText, parseEnvelope } from '../../../lib/crypto/hybrid/hybrid';
 import { utf8ToBytes } from '../../../lib/crypto/hybrid/encoding';
 import { parseRecipients, mergeRecipients, validateEncryptInput } from '../utils/recipients';
-
-export const TITLE_LIMIT = 100;
-export const CONTENT_LIMIT = 1000;
+import { TITLE_LIMIT, CONTENT_LIMIT } from '../constants';
 
 export function useEncryptComposer() {
   const [recipientKeyText, setRecipientKeyText] = useState('');
