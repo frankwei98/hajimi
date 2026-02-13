@@ -8,10 +8,31 @@ export type X25519Keypair = {
   source: "webcrypto" | "noble";
 };
 
-const PUBLIC_KEY_PREFIX = "hajimi";
+export const PUBLIC_KEY_PREFIX = "hajimi";
 
-function encodeBech32(bytes: Uint8Array) {
+export function encodeBech32PublicKey(bytes: Uint8Array) {
   return bech32.encode(PUBLIC_KEY_PREFIX, bech32.toWords(bytes));
+}
+
+export function decodeBech32PublicKey(value: string): Uint8Array {
+  const decoded = bech32.decode(value.trim());
+  if (decoded.prefix !== PUBLIC_KEY_PREFIX) {
+    throw new Error(`公钥前缀不正确，应为 ${PUBLIC_KEY_PREFIX}`);
+  }
+  const bytes = new Uint8Array(bech32.fromWords(decoded.words));
+  if (bytes.length !== 32) {
+    throw new Error("公钥长度不正确");
+  }
+  return bytes;
+}
+
+export function isHajimiPublicKey(value: string): boolean {
+  try {
+    decodeBech32PublicKey(value);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function base64UrlToBytes(input: string): Uint8Array {
@@ -54,7 +75,7 @@ async function tryWebCrypto(): Promise<X25519Keypair | null> {
     return {
       publicKeyBytes,
       privateKeyBytes,
-      publicKeyBech32: encodeBech32(publicKeyBytes),
+      publicKeyBech32: encodeBech32PublicKey(publicKeyBytes),
       source: "webcrypto",
     };
   } catch (error) {
@@ -70,7 +91,7 @@ function generateWithNoble(): X25519Keypair {
   return {
     publicKeyBytes,
     privateKeyBytes,
-    publicKeyBech32: encodeBech32(publicKeyBytes),
+    publicKeyBech32: encodeBech32PublicKey(publicKeyBytes),
     source: "noble",
   };
 }

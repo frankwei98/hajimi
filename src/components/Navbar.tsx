@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Lock, Key, Menu, X } from 'lucide-react';
+import { Home, Lock, Key, Menu, X, Unlock } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { useState } from 'react';
@@ -22,6 +22,7 @@ export function Navbar() {
   const leftNavItems: NavItem[] = [
     { path: '/', label: '首页', icon: Home },
     { path: '/encrypt', label: '加密工坊', icon: Lock },
+    { path: '/decrypt', label: '解密工坊', icon: Unlock },
   ];
 
   const rightNavItems: NavItem[] = [
