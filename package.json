@@ -15,6 +15,7 @@
     "autoprefixer": "^10.4.24",
     "bech32": "^2.0.0",
     "clsx": "^2.1.1",
+    "convex": "^1.31.7",
     "lucide-react": "^0.563.0",
     "postcss": "^8.5.6",
     "react": "^19.2.0",
