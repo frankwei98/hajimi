@@ -1,10 +1,7 @@
-interface KeyVaultEntry {
-  id: string;
-  publicKeyBech32: string;
-}
+import type { StoredKey } from '../../../lib/storage/types';
 
 interface RecipientKeyPickerProps {
-  keys: KeyVaultEntry[];
+  keys: Pick<StoredKey, 'id' | 'publicKeyBech32'>[];
   selectedRecipients: string[];
   onToggle: (publicKey: string) => void;
 }
