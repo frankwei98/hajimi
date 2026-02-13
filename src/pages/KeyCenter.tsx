@@ -8,14 +8,14 @@ import {
   toHex,
   EXPORT_VERSION,
 } from '../lib/crypto/keyVault';
-import { addKey, deleteKey, listKeys, putKeys } from '../lib/storage/keyStore';
+import { addKey, deleteKey, putKeys } from '../lib/storage/keyStore';
 import type { StoredKey } from '../lib/storage/types';
 import { KeyCenterOnboarding } from './key-center/KeyCenterOnboarding';
 import { KeyCenterUnlock } from './key-center/KeyCenterUnlock';
 import { KeyCenterDashboard } from './key-center/KeyCenterDashboard';
+import { useKeyVaultStore } from '../lib/state/keyVaultStore';
 
 export function KeyCenter() {
-  const [keys, setKeys] = useState<StoredKey[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -24,23 +24,24 @@ export function KeyCenter() {
   const [newPin, setNewPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
   const [revealedKeys, setRevealedKeys] = useState<Record<string, string>>({});
-  const [isLoadingKeys, setIsLoadingKeys] = useState(true);
-  const [isUnlocked, setIsUnlocked] = useState(false);
   const [initMode, setInitMode] = useState<'create' | 'import'>('create');
 
+  const {
+    keys,
+    isLoaded,
+    isUnlocked,
+    privateKeyByPub,
+    loadKeys,
+    setKeys,
+    setPrivateKey,
+    removePrivateKey,
+    setUnlocked,
+    unlockVault,
+  } = useKeyVaultStore();
+
   useEffect(() => {
-    listKeys()
-      .then((items) => {
-        const sorted = [...items].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-        setKeys(sorted);
-      })
-      .catch(() => {
-        setError('读取本地密钥失败');
-      })
-      .finally(() => {
-        setIsLoadingKeys(false);
-      });
-  }, []);
+    loadKeys().catch(() => setError('读取本地密钥失败'));
+  }, [loadKeys]);
 
   const keysCountLabel = useMemo(() => {
     if (keys.length === 0) return '暂无密钥';
@@ -55,10 +56,7 @@ export function KeyCenter() {
     setError(null);
     setNotice(null);
     try {
-      if (keys.length > 0) {
-        await decryptPrivateKey(keys[0], pin);
-      }
-      setIsUnlocked(true);
+      await unlockVault(pin);
     } catch {
       setError('PIN 错误，解锁失败');
     }
@@ -87,7 +85,11 @@ export function KeyCenter() {
         source: result.source,
       };
       await addKey(entry);
-      setKeys((prev) => [entry, ...prev]);
+      const next = [entry, ...keys];
+      setKeys(next);
+      if (isUnlocked) {
+        setPrivateKey(entry.publicKeyBech32, result.privateKeyBytes);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : '生成失败');
     } finally {
@@ -114,14 +116,19 @@ export function KeyCenter() {
       });
       return;
     }
-    if (!/^\d{6}$/.test(pin)) {
-      setError('请输入 6 位数字 PIN 以解密私钥');
-      return;
-    }
     setError(null);
     setNotice(null);
     try {
-      const privateKeyBytes = await decryptPrivateKey(entry, pin);
+      let privateKeyBytes = privateKeyByPub[entry.publicKeyBech32];
+      if (!privateKeyBytes) {
+        if (!/^\d{6}$/.test(pin)) {
+          throw new Error('请输入 6 位数字 PIN 以解密私钥');
+        }
+        privateKeyBytes = await decryptPrivateKey(entry, pin);
+        if (isUnlocked) {
+          setPrivateKey(entry.publicKeyBech32, privateKeyBytes);
+        }
+      }
       setRevealedKeys((prev) => ({
         ...prev,
         [entry.id]: toHex(privateKeyBytes),
@@ -133,13 +140,18 @@ export function KeyCenter() {
 
   const handleDelete = async (entryId: string) => {
     try {
+      const entry = keys.find((item) => item.id === entryId);
       await deleteKey(entryId);
-      setKeys((prev) => prev.filter((item) => item.id !== entryId));
+      const next = keys.filter((item) => item.id !== entryId);
+      setKeys(next);
       setRevealedKeys((prev) => {
         const next = { ...prev };
         delete next[entryId];
         return next;
       });
+      if (entry) {
+        removePrivateKey(entry.publicKeyBech32);
+      }
       setNotice('已删除');
     } catch {
       setError('删除失败');
@@ -220,6 +232,9 @@ export function KeyCenter() {
         b.createdAt.localeCompare(a.createdAt)
       );
       setKeys(merged);
+      if (isUnlocked) {
+        await unlockVault(pin);
+      }
       setNotice(`已导入 ${incoming.length} 把密钥`);
       onSuccess?.();
     } catch {
@@ -240,7 +255,7 @@ export function KeyCenter() {
     }
     setError(null);
     setNotice(null);
-    setIsUnlocked(true);
+    setUnlocked(true);
   };
 
   const handlePinChange = async () => {
@@ -272,7 +287,8 @@ export function KeyCenter() {
         });
       }
       await putKeys(updated);
-      setKeys(updated.sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
+      const sorted = updated.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+      setKeys(sorted);
       setRevealedKeys({});
       setNewPin('');
       setConfirmPin('');
@@ -282,7 +298,7 @@ export function KeyCenter() {
     }
   };
 
-  if (isLoadingKeys) {
+  if (!isLoaded) {
     return (
       <div className="bg-white shadow sm:rounded-lg p-12 text-center text-gray-500">
         正在加载密钥库...
@@ -310,7 +326,9 @@ export function KeyCenter() {
           onConfirmPinChange={setConfirmPin}
           onCreate={handleInitCreate}
           onImport={handleImport}
-          onImported={() => setIsUnlocked(true)}
+          onImported={() => {
+            void unlockVault(pin);
+          }}
         />
       );
     }
