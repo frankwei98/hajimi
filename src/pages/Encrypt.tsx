@@ -1,9 +1,11 @@
 import { useMemo, useState, useEffect } from 'react';
-import { Lock, Key, FileText, Send, Type, Copy } from 'lucide-react';
+import { Lock, Key, FileText, Send, Type, Copy, Share2, ExternalLink, Check } from 'lucide-react';
 import { decodeBech32PublicKey, isHajimiPublicKey } from '../lib/crypto/x25519';
-import { encryptForRecipients, envelopeToText } from '../lib/crypto/hybrid/hybrid';
+import { encryptForRecipients, envelopeToText, parseEnvelope } from '../lib/crypto/hybrid/hybrid';
 import { utf8ToBytes } from '../lib/crypto/hybrid/encoding';
 import { useKeyVaultStore } from '../lib/state/keyVaultStore';
+import { useMutation } from 'convex/react';
+import { api } from '../../convex/_generated/api';
 
 const TITLE_LIMIT = 100;
 const CONTENT_LIMIT = 1000;
@@ -25,8 +27,12 @@ export function Encrypt() {
   const [output, setOutput] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isBusy, setIsBusy] = useState(false);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
 
   const { keys, loadKeys } = useKeyVaultStore();
+
+  // DB related
+  const uploadMutation = useMutation(api.messages.uploadMessage);
 
   useEffect(() => {
     loadKeys().catch(() => undefined);
@@ -57,6 +63,7 @@ export function Encrypt() {
   const handleEncrypt = async () => {
     setError(null);
     setOutput('');
+    setShareUrl(null);
     try {
       const manualRecipients = parseRecipients(recipientKeyText);
       const selected = selectedRecipients.map((kid) => ({
@@ -89,6 +96,32 @@ export function Encrypt() {
     } finally {
       setIsBusy(false);
     }
+  };
+
+  const handleShare = async () => {
+    if (!output) return;
+    setError(null);
+    setIsBusy(true);
+    try {
+      const envelope = parseEnvelope(output);
+      const messageId = await uploadMutation({
+        message: {
+          body: envelope
+        }
+      });
+      const url = `${window.location.origin}/m/${messageId}`;
+      setShareUrl(url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '上传分享失败');
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  const handleCopyShareUrl = async () => {
+    if (!shareUrl) return;
+    await navigator.clipboard.writeText(shareUrl);
+    // You could add a temporary "copied" state here if desired
   };
 
   const handleCopy = async () => {
@@ -215,24 +248,67 @@ export function Encrypt() {
           ) : null}
 
           {output ? (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-700">加密结果（JSON）</span>
-                <button
-                  type="button"
-                  onClick={handleCopy}
-                  className="inline-flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-700"
-                >
-                  <Copy className="w-4 h-4" />
-                  复制
-                </button>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-700">加密结果（JSON）</span>
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={handleCopy}
+                      className="inline-flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-700"
+                    >
+                      <Copy className="w-4 h-4" />
+                      复制密文
+                    </button>
+                    {!shareUrl && (
+                      <button
+                        type="button"
+                        onClick={handleShare}
+                        disabled={isBusy}
+                        className="inline-flex items-center gap-1 text-sm text-green-600 hover:text-green-700 disabled:opacity-50"
+                      >
+                        <Share2 className="w-4 h-4" />
+                        以链接分享
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <textarea
+                  readOnly
+                  rows={8}
+                  className="w-full rounded-md border border-gray-200 bg-gray-50 p-3 font-mono text-xs"
+                  value={output}
+                />
               </div>
-              <textarea
-                readOnly
-                rows={10}
-                className="w-full rounded-md border border-gray-200 bg-gray-50 p-3 font-mono text-xs"
-                value={output}
-              />
+
+              {shareUrl && (
+                <div className="rounded-md bg-green-50 p-4 border border-green-200">
+                  <div className="flex">
+                    <div className="flex-shrink-0">
+                      <Check className="h-5 w-5 text-green-400" aria-hidden="true" />
+                    </div>
+                    <div className="ml-3 flex-1 md:flex md:justify-between">
+                      <p className="text-sm text-green-700">
+                        消息已上传！任何人访问此链接均可尝试解密。
+                      </p>
+                      <p className="mt-3 text-sm md:ml-6 md:mt-0">
+                        <button
+                          onClick={handleCopyShareUrl}
+                          className="whitespace-nowrap font-medium text-green-700 hover:text-green-600 flex items-center gap-1"
+                        >
+                          <Copy className="w-4 h-4" />
+                          复制链接
+                        </button>
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-2 flex items-center gap-2 bg-white p-2 rounded border border-green-100 text-xs font-mono text-green-800 break-all">
+                    <ExternalLink className="w-3 h-3 flex-shrink-0" />
+                    {shareUrl}
+                  </div>
+                </div>
+              )}
             </div>
           ) : null}
 
@@ -244,7 +320,7 @@ export function Encrypt() {
               disabled={isBusy}
             >
               <Send className="w-5 h-5 mr-2" />
-              {isBusy ? '加密中...' : '生成加密消息'}
+              {isBusy ? (shareUrl ? '正在分享...' : '加密中...') : '生成加密消息'}
             </button>
           </div>
         </div>

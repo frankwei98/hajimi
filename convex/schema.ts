@@ -6,7 +6,7 @@ export default defineSchema({
    * message 请帮我参考 HybridEnvelope
    */
   message: defineTable({
-    id: v.id("message"),
+    // id: v.id("message"),
     body: v.object({
       v: v.number(),
       alg: v.string(),
