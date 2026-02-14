@@ -5,7 +5,6 @@ import { RecipientInputPanel } from './encrypt/components/RecipientInputPanel';
 import { RecipientKeyPicker } from './encrypt/components/RecipientKeyPicker';
 import { MessageEditor } from './encrypt/components/MessageEditor';
 import { EncryptOutputPanel } from './encrypt/components/EncryptOutputPanel';
-import { ShareResultBanner } from './encrypt/components/ShareResultBanner';
 import { InlineErrorAlert } from './encrypt/components/InlineErrorAlert';
 
 export function Encrypt() {
@@ -67,17 +66,11 @@ export function Encrypt() {
             onCopy={copyOutput}
             onShare={share}
             onEncrypt={encrypt}
+            onCopyShareUrl={copyShareUrl}
             isEncrypting={isEncrypting}
             isSharing={isSharing}
             shareUrl={shareUrl}
           />
-
-          {shareUrl && (
-            <ShareResultBanner
-              shareUrl={shareUrl}
-              onCopyShareUrl={copyShareUrl}
-            />
-          )}
         </div>
       </div>
     </div>
