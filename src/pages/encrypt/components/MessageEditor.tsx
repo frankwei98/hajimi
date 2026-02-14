@@ -28,7 +28,7 @@ export function MessageEditor({
           <input
             type="text"
             id="title"
-            className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md p-3 border pr-16"
+            className="shadow-sm focus:ring-black focus:border-black block w-full sm:text-sm border-gray-300 rounded-md p-3 border pr-16"
             placeholder="例如：周五会议纪要"
             value={title}
             onChange={(e) => onTitleChange(e.target.value)}
@@ -50,7 +50,7 @@ export function MessageEditor({
           <textarea
             id="content"
             rows={10}
-            className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md p-3 border pb-8"
+            className="shadow-sm focus:ring-black focus:border-black block w-full sm:text-sm border-gray-300 rounded-md p-3 border pb-8"
             placeholder="在此输入需要加密的敏感内容..."
             value={content}
             onChange={(e) => onContentChange(e.target.value)}

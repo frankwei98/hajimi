@@ -133,7 +133,7 @@ export function KeyCenterOnboarding({
           </div>
 
           {error && <div className="text-sm text-red-600 font-medium animate-pulse">{error}</div>}
-          {notice && <div className="text-sm text-emerald-600 font-medium">{notice}</div>}
+          {notice && <div className="text-sm text-gray-600 font-medium">{notice}</div>}
         </div>
       )}
     </div>

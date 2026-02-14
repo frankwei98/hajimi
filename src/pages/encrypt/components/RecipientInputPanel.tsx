@@ -18,7 +18,7 @@ export function RecipientInputPanel({ value, onChange, recipientCount, formatWar
         <textarea
           id="public-key"
           rows={4}
-          className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md p-3 border resize-none font-mono text-xs"
+          className="shadow-sm focus:ring-black focus:border-black block w-full sm:text-sm border-gray-300 rounded-md p-3 border resize-none font-mono text-xs"
           placeholder="每行一个 hajimi... 公钥"
           value={value}
           onChange={(e) => onChange(e.target.value)}

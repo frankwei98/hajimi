@@ -52,8 +52,8 @@ export function Navbar() {
                     className={cn(
                       'inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors duration-200',
                       isActive
-                        ? 'border-indigo-500 text-gray-900'
-                        : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                        ? 'border-black text-black'
+                        : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-900'
                     )}
                   >
                     <Icon className="w-4 h-4 mr-2" />
@@ -77,8 +77,8 @@ export function Navbar() {
                     className={cn(
                       'inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors duration-200',
                       isActive
-                        ? 'border-indigo-500 text-gray-900'
-                        : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                        ? 'border-black text-black'
+                        : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-900'
                     )}
                   >
                     <Icon className="w-4 h-4 mr-2" />
@@ -91,7 +91,7 @@ export function Navbar() {
           <div className="flex items-center sm:hidden">
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500"
+              className="inline-flex items-center justify-center p-2 rounded-md text-gray-500 hover:text-black hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-black"
             >
               <span className="sr-only">Open main menu</span>
               {isOpen ? (
@@ -122,8 +122,8 @@ export function Navbar() {
                   className={cn(
                     'flex items-center px-3 py-2 border-l-4 text-base font-medium',
                     isActive
-                      ? 'bg-indigo-50 border-indigo-500 text-indigo-700'
-                      : 'border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700'
+                      ? 'bg-gray-100 border-black text-black'
+                      : 'border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-900'
                   )}
                 >
                   <Icon className="w-4 h-4 mr-3" />

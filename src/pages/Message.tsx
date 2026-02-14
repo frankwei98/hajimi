@@ -96,7 +96,7 @@ export function Message() {
   if (message === undefined || !isLoaded) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
-        <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
+        <Loader2 className="w-8 h-8 text-black animate-spin" />
         <p className="text-gray-500 animate-pulse">正在从云端调取加密消息...</p>
       </div>
     );
@@ -115,7 +115,7 @@ export function Message() {
             </p>
             <a 
               href="/"
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200"
+              className="inline-flex items-center px-4 py-2 border border-gray-200 text-sm font-medium rounded-md text-gray-900 bg-white hover:bg-gray-50 transition-colors"
             >
               返回首页
             </a>
@@ -132,7 +132,7 @@ export function Message() {
         <div className="px-6 py-5 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
           <div>
             <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-              <ShieldCheck className="w-5 h-5 text-green-600" />
+              <ShieldCheck className="w-5 h-5 text-black" />
               已获取加密消息
             </h2>
             <p className="mt-1 text-sm text-gray-500">
@@ -140,7 +140,7 @@ export function Message() {
             </p>
           </div>
           {decryptedData && (
-            <div className="flex items-center gap-2 px-3 py-1 bg-green-50 border border-green-200 rounded-full text-xs font-medium text-green-700">
+            <div className="flex items-center gap-2 px-3 py-1 bg-black border border-transparent rounded-full text-xs font-medium text-white">
               <Unlock className="w-3.5 h-3.5" />
               已解密
             </div>
@@ -170,12 +170,12 @@ export function Message() {
                   onUnlock={handleUnlock}
                 />
               ) : (
-                <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+                <div className="bg-gray-50 border-l-4 border-gray-900 p-4">
                   <div className="flex items-center gap-3">
-                    <Lock className="w-6 h-6 text-yellow-500" />
+                    <Lock className="w-6 h-6 text-gray-900" />
                     <div>
-                      <h3 className="text-sm font-medium text-yellow-800">未发现本地密钥</h3>
-                      <p className="text-sm text-yellow-700 mt-1">
+                      <h3 className="text-sm font-medium text-gray-900">未发现本地密钥</h3>
+                      <p className="text-sm text-gray-600 mt-1">
                         你当前浏览器中没有可用的私钥，无法直接解密此消息。请先在「密钥中心」创建或导入密钥。
                       </p>
                     </div>
@@ -185,11 +185,11 @@ export function Message() {
             </div>
           ) : isDecrypting ? (
             <div className="flex flex-col items-center justify-center py-12 space-y-4">
-              <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
+              <Loader2 className="w-8 h-8 text-black animate-spin" />
               <p className="text-gray-500">正在匹配密钥并解密...</p>
             </div>
           ) : decryptError ? (
-            <div className="bg-red-50 border-l-4 border-red-400 p-4">
+            <div className="bg-red-50 border-l-4 border-red-500 p-4">
               <div className="flex items-center gap-3">
                 <AlertCircle className="w-6 h-6 text-red-500" />
                 <div>
@@ -211,7 +211,7 @@ export function Message() {
               
               <div>
                 <h3 className="text-sm font-medium text-gray-500 mb-1">内容</h3>
-                <div className="prose prose-indigo max-w-none bg-gray-50 p-6 rounded-xl border border-gray-100 text-gray-800 whitespace-pre-wrap font-sans text-lg leading-relaxed shadow-sm">
+                <div className="prose prose-gray max-w-none bg-gray-50 p-6 rounded-xl border border-gray-100 text-gray-800 whitespace-pre-wrap font-sans text-lg leading-relaxed shadow-sm">
                   {decryptedData.content || decryptedData.raw}
                 </div>
               </div>
@@ -225,7 +225,7 @@ export function Message() {
                   onClick={() => {
                     navigator.clipboard.writeText(decryptedData.content || decryptedData.raw);
                   }}
-                  className="inline-flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-500 transition-colors"
+                  className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-900 hover:text-black transition-colors"
                 >
                   <Copy className="w-4 h-4" />
                   复制解密内容
@@ -238,7 +238,7 @@ export function Message() {
                 密文 JSON 数据
               </label>
               <div className="relative">
-                <pre className="bg-gray-900 text-gray-300 p-4 rounded-lg overflow-x-auto font-mono text-xs leading-relaxed max-h-[500px]">
+                <pre className="bg-black text-gray-300 p-4 rounded-lg overflow-x-auto font-mono text-xs leading-relaxed max-h-[500px]">
                   {JSON.stringify(message, (key, value) => {
                     if (key.startsWith('_')) return undefined;
                     return value;
@@ -249,10 +249,10 @@ export function Message() {
           )}
 
           {!decryptedData && !isDecrypting && (
-            <div className="bg-blue-50 border-l-4 border-blue-400 p-4">
+            <div className="bg-gray-50 border-l-4 border-gray-200 p-4">
               <div className="flex">
                 <div className="ml-3">
-                  <p className="text-sm text-blue-700">
+                  <p className="text-sm text-gray-600">
                     💡 <strong>提示：</strong> 这是一个长文分享链接。
                     {!isUnlocked 
                       ? " 请输入 PIN 解锁你的密钥库以尝试自动解密。" 
@@ -267,7 +267,7 @@ export function Message() {
             <div className="pt-4 flex justify-end">
               <button
                 type="button"
-                className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 transition-colors"
+                className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-black hover:bg-gray-800 transition-colors"
                 onClick={() => {
                   const cleanData = JSON.stringify(message, (key, value) => {
                     if (key.startsWith('_')) return undefined;

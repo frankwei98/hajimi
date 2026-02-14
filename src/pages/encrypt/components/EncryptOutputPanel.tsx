@@ -56,15 +56,15 @@ function OutputResult({
   return (
     <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-2">
       {/* 成功头部 */}
-      <div className="bg-emerald-50 px-6 py-4 border-b border-emerald-100 flex items-start sm:items-center gap-4">
-        <div className="bg-emerald-100 p-2 rounded-full flex-shrink-0">
-          <Check className="w-5 h-5 text-emerald-600" />
+      <div className="bg-gray-50 px-6 py-4 border-b border-gray-100 flex items-start sm:items-center gap-4">
+        <div className="bg-black p-2 rounded-full flex-shrink-0 text-white">
+          <Check className="w-5 h-5" />
         </div>
         <div>
-          <h3 className="text-base font-semibold text-emerald-900">
+          <h3 className="text-base font-semibold text-gray-900">
             消息加密成功
           </h3>
-          <p className="text-sm text-emerald-700 mt-0.5">
+          <p className="text-sm text-gray-600 mt-0.5">
             密文已生成，请选择发送方式。
           </p>
         </div>
@@ -75,7 +75,7 @@ function OutputResult({
         <div>
           <div className="flex items-center justify-between mb-3">
             <h4 className="text-sm font-medium text-gray-900 flex items-center gap-2">
-              <span className="bg-indigo-100 text-indigo-700 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold">
+              <span className="bg-black text-white w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold">
                 1
               </span>
               通过安全链接分享 (推荐)
@@ -83,7 +83,7 @@ function OutputResult({
           </div>
 
           {!shareUrl ? (
-            <div className="bg-gray-50 rounded-lg border border-gray-200 p-4">
+            <div className="bg-white rounded-lg border border-gray-200 p-4">
               <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
                 <div className="text-sm text-gray-600">
                   生成一个一次性链接，发送给接收者。
@@ -98,8 +98,8 @@ function OutputResult({
                       <div className="flex items-center gap-2 text-sm text-gray-600">
                         {isSharing ? (
                           <>
-                            <RefreshCw className="w-4 h-4 animate-spin text-indigo-600" />
-                            <span className="font-medium text-indigo-600">创建中...</span>
+                            <RefreshCw className="w-4 h-4 animate-spin text-black" />
+                            <span className="font-medium text-black">创建中...</span>
                           </>
                         ) : (
                           <>
@@ -132,7 +132,7 @@ function OutputResult({
                 ) : (
                   <button
                     onClick={handleShareClick}
-                    className="flex-shrink-0 inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 shadow-sm transition-all active:scale-95"
+                    className="flex-shrink-0 inline-flex items-center gap-2 px-4 py-2 bg-black text-white text-sm font-medium rounded-md hover:bg-gray-800 shadow-sm transition-all active:scale-95"
                   >
                     <LinkIcon className="w-4 h-4" />
                     生成分享链接
@@ -141,30 +141,30 @@ function OutputResult({
               </div>
             </div>
           ) : (
-            <div className="bg-indigo-50 rounded-lg border border-indigo-200 p-4 animate-in zoom-in-95 duration-200">
+            <div className="bg-gray-50 rounded-lg border border-gray-200 p-4 animate-in zoom-in-95 duration-200">
               <div className="flex flex-col gap-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-semibold text-indigo-900 flex items-center gap-2">
-                    <Check className="w-4 h-4 text-indigo-600" />
+                  <span className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                    <Check className="w-4 h-4 text-black" />
                     链接已就绪
                   </span>
                   <a
                     href={shareUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-xs text-indigo-600 hover:text-indigo-800 flex items-center gap-1 underline decoration-indigo-300 underline-offset-2"
+                    className="text-xs text-gray-600 hover:text-black flex items-center gap-1 underline decoration-gray-300 underline-offset-2"
                   >
                     直接打开 <ExternalLink className="w-3 h-3" />
                   </a>
                 </div>
                 
                 <div className="flex items-center gap-2">
-                  <div className="flex-1 bg-white border border-indigo-200 rounded px-3 py-2 text-sm font-mono text-gray-600 break-all select-all shadow-inner">
+                  <div className="flex-1 bg-white border border-gray-200 rounded px-3 py-2 text-sm font-mono text-gray-600 break-all select-all shadow-inner">
                     {shareUrl}
                   </div>
                   <button
                     onClick={onCopyShareUrl}
-                    className="flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50 focus:ring-2 focus:ring-indigo-500 transition-colors"
+                    className="flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50 focus:ring-2 focus:ring-black transition-colors"
                   >
                     <Copy className="w-4 h-4" />
                     复制
@@ -188,7 +188,7 @@ function OutputResult({
             </h4>
             <button
               onClick={() => setShowRaw(!showRaw)}
-              className="text-xs text-gray-500 hover:text-indigo-600 flex items-center gap-1 transition-colors"
+              className="text-xs text-gray-500 hover:text-black flex items-center gap-1 transition-colors"
             >
               {showRaw ? '收起详情' : '展开详情'}
               <ChevronDown
@@ -206,7 +206,7 @@ function OutputResult({
               <textarea
                 readOnly
                 rows={6}
-                className="w-full rounded-md border border-gray-300 bg-gray-50 p-3 font-mono text-xs text-gray-600 focus:ring-indigo-500 focus:border-indigo-500 block"
+                className="w-full rounded-md border border-gray-300 bg-gray-50 p-3 font-mono text-xs text-gray-600 focus:ring-black focus:border-black block"
                 value={output}
               />
               <button
@@ -221,7 +221,7 @@ function OutputResult({
            {!showRaw && (
               <button
                  onClick={onCopy}
-                 className="inline-flex items-center gap-1.5 text-sm text-gray-600 hover:text-indigo-600 border border-gray-200 rounded px-3 py-1.5 bg-white hover:border-indigo-200 transition-all"
+                 className="inline-flex items-center gap-1.5 text-sm text-gray-600 hover:text-black border border-gray-200 rounded px-3 py-1.5 bg-white hover:border-gray-400 transition-all"
               >
                  <Copy className="w-4 h-4" />
                  复制 JSON 密文到剪贴板
@@ -261,8 +261,8 @@ export function EncryptOutputPanel({
       <div className="pt-2 flex justify-end">
         <button
           type="button"
-          className={`inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed active:scale-[0.98] ${
-             output ? 'bg-gray-600 hover:bg-gray-700' : 'bg-indigo-600 hover:bg-indigo-700'
+          className={`inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black transition-all disabled:opacity-60 disabled:cursor-not-allowed active:scale-[0.98] ${
+             output ? 'bg-gray-800 hover:bg-black' : 'bg-black hover:bg-gray-800'
           }`}
           onClick={onEncrypt}
           disabled={isEncrypting || isSharing}

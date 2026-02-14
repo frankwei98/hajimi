@@ -47,7 +47,7 @@ export function KeysTable({
                 <div className="flex items-center gap-2 group">
                   <div
                     onClick={() => onCopy(`pub-${entry.id}`, entry.publicKeyBech32)}
-                    className="break-all font-mono text-gray-900 cursor-pointer hover:text-blue-600 transition-colors"
+                    className="break-all font-mono text-gray-900 cursor-pointer hover:text-black transition-colors"
                     title="点击复制"
                   >
                     {entry.publicKeyBech32}
@@ -59,7 +59,7 @@ export function KeysTable({
                     title="复制公钥"
                   >
                     {copiedField === `pub-${entry.id}` ? (
-                      <Check className="h-3.5 w-3.5 text-emerald-500" />
+                      <Check className="h-3.5 w-3.5 text-black" />
                     ) : (
                       <Copy className="h-3.5 w-3.5" />
                     )}
@@ -81,7 +81,7 @@ export function KeysTable({
                 <button
                   type="button"
                   onClick={() => onToggleReveal(entry)}
-                  className="text-xs font-medium text-amber-700 hover:text-amber-900"
+                  className="text-xs font-medium text-gray-600 hover:text-black transition-colors"
                 >
                   {revealedKeys[entry.id] ? '隐藏私钥' : '显示私钥'}
                 </button>
