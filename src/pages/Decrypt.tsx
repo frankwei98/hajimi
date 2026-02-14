@@ -112,94 +112,113 @@ export function Decrypt() {
         </div>
 
         <div className="p-6 space-y-6">
-          <div className="space-y-3">
-            <label className="block text-sm font-medium text-gray-700">密钥库解锁</label>
-            <div className="text-xs text-gray-500">已保存 {keys.length} 把密钥</div>
-            <PinInput value={pin} onChange={setPin} disabled={isBusy || keys.length === 0} />
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={handleUnlock}
-                disabled={isBusy || keys.length === 0}
-                className="inline-flex items-center gap-2 rounded-md bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-60 transition-colors"
-              >
-                <Unlock className="h-4 w-4" />
-                {isBusy ? '解锁中...' : '解锁密钥库'}
-              </button>
-              {isUnlocked ? (
-                <button
-                  type="button"
-                  onClick={handleLock}
-                  className="inline-flex items-center gap-2 rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-                >
-                  锁定
-                </button>
-              ) : null}
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">密文 JSON</label>
-            <textarea
-              rows={8}
-              className="w-full rounded-md border border-gray-300 p-3 font-mono text-xs focus:ring-black focus:border-black"
-              placeholder="粘贴加密结果 JSON"
-              value={envelopeText}
-              onChange={(e) => setEnvelopeText(e.target.value)}
-            />
-          </div>
-
-          {error ? (
-            <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-              {error}
-            </div>
-          ) : null}
-
-          <div className="flex justify-end">
-            <button
-              type="button"
-              onClick={handleDecrypt}
-              disabled={isBusy}
-              className="inline-flex items-center gap-2 rounded-md bg-black px-6 py-3 text-base font-medium text-white hover:bg-gray-800 disabled:opacity-60 transition-colors shadow-sm"
-            >
-              <FileText className="h-5 w-5" />
-              {isBusy ? '解密中...' : '解密消息'}
-            </button>
-          </div>
-
-          {matchedKid ? (
-            <div className="rounded-md border border-gray-200 bg-gray-50 px-4 py-3 text-xs text-gray-700 break-all">
-              已匹配密钥：{matchedKid}
-            </div>
-          ) : null}
-
-          {resultText ? (
-            <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-700">解密结果</span>
-                <button
-                  type="button"
-                  onClick={handleCopy}
-                  className="inline-flex items-center gap-1 text-sm text-gray-900 hover:text-black transition-colors"
-                >
-                  <Copy className="w-4 h-4" />
-                  复制
-                </button>
-              </div>
-              {resultTitle || resultContent ? (
-                <div className="rounded-md border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
-                  {resultTitle ? <div className="font-semibold mb-2">{resultTitle}</div> : null}
-                  {resultContent ? <div className="whitespace-pre-wrap">{resultContent}</div> : null}
+          {!isUnlocked ? (
+            <div className="space-y-3">
+              <label className="block text-sm font-medium text-gray-700">密钥库解锁</label>
+              <div className="text-xs text-gray-500">已保存 {keys.length} 把密钥</div>
+              <PinInput value={pin} onChange={setPin} disabled={isBusy || keys.length === 0} />
+              
+              {error ? (
+                <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {error}
                 </div>
               ) : null}
-              <textarea
-                readOnly
-                rows={6}
-                className="w-full rounded-md border border-gray-200 bg-gray-50 p-3 font-mono text-xs focus:ring-black focus:border-black"
-                value={resultText}
-              />
+
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={handleUnlock}
+                  disabled={isBusy || keys.length === 0}
+                  className="inline-flex items-center gap-2 rounded-md bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-60 transition-colors"
+                >
+                  <Unlock className="h-4 w-4" />
+                  {isBusy ? '解锁中...' : '解锁密钥库'}
+                </button>
+              </div>
             </div>
-          ) : null}
+          ) : (
+            <div className="flex items-center justify-between rounded-md bg-green-50 px-4 py-3 text-sm text-green-700 border border-green-200">
+              <div className="flex items-center gap-2">
+                <Unlock className="h-4 w-4" />
+                <span className="font-medium">密钥库已解锁</span>
+                <span className="text-xs opacity-80">({keys.length} 把密钥)</span>
+              </div>
+              <button
+                type="button"
+                onClick={handleLock}
+                className="text-xs font-medium underline hover:text-green-800"
+              >
+                锁定
+              </button>
+            </div>
+          )}
+
+          {isUnlocked && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">密文 JSON</label>
+                <textarea
+                  rows={8}
+                  className="w-full rounded-md border border-gray-300 p-3 font-mono text-xs focus:ring-black focus:border-black"
+                  placeholder="粘贴加密结果 JSON"
+                  value={envelopeText}
+                  onChange={(e) => setEnvelopeText(e.target.value)}
+                />
+              </div>
+
+              {error ? (
+                <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {error}
+                </div>
+              ) : null}
+
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={handleDecrypt}
+                  disabled={isBusy}
+                  className="inline-flex items-center gap-2 rounded-md bg-black px-6 py-3 text-base font-medium text-white hover:bg-gray-800 disabled:opacity-60 transition-colors shadow-sm"
+                >
+                  <FileText className="h-5 w-5" />
+                  {isBusy ? '解密中...' : '解密消息'}
+                </button>
+              </div>
+
+              {matchedKid ? (
+                <div className="rounded-md border border-gray-200 bg-gray-50 px-4 py-3 text-xs text-gray-700 break-all">
+                  已匹配密钥：{matchedKid}
+                </div>
+              ) : null}
+
+              {resultText ? (
+                <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-700">解密结果</span>
+                    <button
+                      type="button"
+                      onClick={handleCopy}
+                      className="inline-flex items-center gap-1 text-sm text-gray-900 hover:text-black transition-colors"
+                    >
+                      <Copy className="w-4 h-4" />
+                      复制
+                    </button>
+                  </div>
+                  {resultTitle || resultContent ? (
+                    <div className="rounded-md border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+                      {resultTitle ? <div className="font-semibold mb-2">{resultTitle}</div> : null}
+                      {resultContent ? <div className="whitespace-pre-wrap">{resultContent}</div> : null}
+                    </div>
+                  ) : null}
+                  <textarea
+                    readOnly
+                    rows={6}
+                    className="w-full rounded-md border border-gray-200 bg-gray-50 p-3 font-mono text-xs focus:ring-black focus:border-black"
+                    value={resultText}
+                  />
+                </div>
+              ) : null}
+            </div>
+          )}
         </div>
       </div>
     </div>
