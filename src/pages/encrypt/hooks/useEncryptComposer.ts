@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useMutation } from "convex/react";
+import { useAction } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { useKeyVaultStore } from "../../../lib/state/keyVaultStore";
 import {
@@ -31,7 +31,7 @@ export function useEncryptComposer() {
   const [shareUrl, setShareUrl] = useState<string | null>(null);
 
   const { keys, loadKeys } = useKeyVaultStore();
-  const uploadMutation = useMutation(api.messages.uploadMessage);
+  const upload = useAction(api.messages.uploadMessage);
 
   useEffect(() => {
     loadKeys().catch(() => undefined);
@@ -106,9 +106,10 @@ export function useEncryptComposer() {
     setIsSharing(true);
     try {
       const envelope = parseEnvelope(output);
-      const messageId = await uploadMutation({
+      console.log(captchaToken);
+      const messageId = await upload({
         // 从 cloudflare turnstile 获取 token
-        captchaToken,
+        token: captchaToken,
         message: { body: envelope },
       });
       const url = `${window.location.origin}/m/${messageId}`;

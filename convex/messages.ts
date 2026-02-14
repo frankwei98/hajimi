@@ -1,6 +1,8 @@
-import { mutation, query } from "./_generated/server";
+import { action, internalMutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
 import type { TurnstileServerValidationResponse } from "@marsidev/react-turnstile";
+import { Id } from "./_generated/dataModel";
 
 const secret = process.env.CF_TURNSTILE_SECRET || "";
 
@@ -25,6 +27,41 @@ async function validateTurnstile(token: string): Promise<boolean> {
   }
 }
 
+const msgObj = v.object({
+  body: v.object({
+    v: v.number(),
+    alg: v.string(),
+    epk: v.string(),
+    nonce: v.string(),
+    ciphertext: v.string(),
+    recipients: v.array(
+      v.object({
+        kid: v.string(),
+        salt: v.string(),
+        wrapNonce: v.string(),
+        encCEK: v.string(),
+      }),
+    ),
+  }),
+});
+
+export const uploadMessage = action({
+  args: { token: v.string(), message: msgObj },
+  handler: async (ctx, args) => {
+    const isVerifiedReq = await validateTurnstile(args.token);
+    if (!isVerifiedReq) {
+      throw new Error("Invalid captcha token");
+    }
+    const res: Id<"message"> = await ctx.runMutation(
+      internal.messages.iUploadMessage,
+      {
+        message: args.message,
+      },
+    );
+    return res;
+  },
+});
+
 export const getMessage = query({
   args: { messageId: v.id("message") },
   handler: async (ctx, args) => {
@@ -40,32 +77,11 @@ export const getMessage = query({
   },
 });
 
-export const uploadMessage = mutation({
+export const iUploadMessage = internalMutation({
   args: {
-    // cloudflare turnstile
-    captchaToken: v.string(),
-    message: v.object({
-      body: v.object({
-        v: v.number(),
-        alg: v.string(),
-        epk: v.string(),
-        nonce: v.string(),
-        ciphertext: v.string(),
-        recipients: v.array(
-          v.object({
-            kid: v.string(),
-            salt: v.string(),
-            wrapNonce: v.string(),
-            encCEK: v.string(),
-          }),
-        ),
-      }),
-    }),
+    message: msgObj,
   },
   handler: async (ctx, args) => {
-    if (!validateTurnstile(args.captchaToken)) {
-      throw new Error("Invalid captcha token");
-    }
     const newMessageId = await ctx.db.insert("message", args.message);
     return newMessageId;
   },
