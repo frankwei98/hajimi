@@ -7,6 +7,10 @@ import { Id } from "./_generated/dataModel";
 const secret = process.env.CF_TURNSTILE_SECRET || "";
 
 async function validateTurnstile(token: string): Promise<boolean> {
+  if (!secret) {
+    console.error("CF_TURNSTILE_SECRET is not set in environment variables");
+    return false;
+  }
   try {
     const res = await fetch(
       "https://challenges.cloudflare.com/turnstile/v0/siteverify",
@@ -18,6 +22,11 @@ async function validateTurnstile(token: string): Promise<boolean> {
         },
       },
     );
+
+    if (!res.ok) {
+      console.error(`Turnstile verification failed with status: ${res.status}`);
+      return false;
+    }
 
     const data = (await res.json()) as TurnstileServerValidationResponse;
     return data.success;
@@ -65,15 +74,8 @@ export const uploadMessage = action({
 export const getMessage = query({
   args: { messageId: v.id("message") },
   handler: async (ctx, args) => {
-    // Convex IDs are typically formatted as 'tableName/id' in some contexts,
-    // but here we expect the user to pass the ID string.
-    // We attempt to cast it to Id<"message">
-    try {
-      const message = await ctx.db.get("message", args.messageId);
-      return message;
-    } catch {
-      return null;
-    }
+    const message = await ctx.db.get(args.messageId);
+    return message;
   },
 });
 
