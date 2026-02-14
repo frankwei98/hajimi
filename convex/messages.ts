@@ -1,5 +1,29 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import type { TurnstileServerValidationResponse } from "@marsidev/react-turnstile";
+
+const secret = process.env.CF_TURNSTILE_SECRET || "";
+
+async function validateTurnstile(token: string): Promise<boolean> {
+  try {
+    const res = await fetch(
+      "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+      {
+        method: "POST",
+        body: `secret=${encodeURIComponent(secret)}&response=${encodeURIComponent(token)}`,
+        headers: {
+          "content-type": "application/x-www-form-urlencoded",
+        },
+      },
+    );
+
+    const data = (await res.json()) as TurnstileServerValidationResponse;
+    return data.success;
+  } catch (error) {
+    console.error("Turnstile validation error:", error);
+    return false;
+  }
+}
 
 export const getMessage = query({
   args: { messageId: v.id("message") },
@@ -18,6 +42,8 @@ export const getMessage = query({
 
 export const uploadMessage = mutation({
   args: {
+    // cloudflare turnstile
+    captchaToken: v.string(),
     message: v.object({
       body: v.object({
         v: v.number(),
@@ -37,6 +63,9 @@ export const uploadMessage = mutation({
     }),
   },
   handler: async (ctx, args) => {
+    if (!validateTurnstile(args.captchaToken)) {
+      throw new Error("Invalid captcha token");
+    }
     const newMessageId = await ctx.db.insert("message", args.message);
     return newMessageId;
   },

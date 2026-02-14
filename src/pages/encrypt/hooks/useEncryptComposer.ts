@@ -1,19 +1,30 @@
-import { useState, useEffect, useMemo } from 'react';
-import { useMutation } from 'convex/react';
-import { api } from '../../../../convex/_generated/api';
-import { useKeyVaultStore } from '../../../lib/state/keyVaultStore';
-import { decodeBech32PublicKey, isHajimiPublicKey } from '../../../lib/crypto/x25519';
-import { encryptForRecipients, envelopeToText, parseEnvelope } from '../../../lib/crypto/hybrid/hybrid';
-import { utf8ToBytes } from '../../../lib/crypto/hybrid/encoding';
-import { parseRecipients, mergeRecipients, validateEncryptInput } from '../utils/recipients';
-import { TITLE_LIMIT, CONTENT_LIMIT } from '../constants';
+import { useState, useEffect, useMemo } from "react";
+import { useMutation } from "convex/react";
+import { api } from "../../../../convex/_generated/api";
+import { useKeyVaultStore } from "../../../lib/state/keyVaultStore";
+import {
+  decodeBech32PublicKey,
+  isHajimiPublicKey,
+} from "../../../lib/crypto/x25519";
+import {
+  encryptForRecipients,
+  envelopeToText,
+  parseEnvelope,
+} from "../../../lib/crypto/hybrid/hybrid";
+import { utf8ToBytes } from "../../../lib/crypto/hybrid/encoding";
+import {
+  parseRecipients,
+  mergeRecipients,
+  validateEncryptInput,
+} from "../utils/recipients";
+import { TITLE_LIMIT, CONTENT_LIMIT } from "../constants";
 
 export function useEncryptComposer() {
-  const [recipientKeyText, setRecipientKeyText] = useState('');
+  const [recipientKeyText, setRecipientKeyText] = useState("");
   const [selectedRecipients, setSelectedRecipients] = useState<string[]>([]);
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
-  const [output, setOutput] = useState('');
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [output, setOutput] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isEncrypting, setIsEncrypting] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
@@ -27,16 +38,19 @@ export function useEncryptComposer() {
   }, [loadKeys]);
 
   const recipientCount = useMemo(() => {
-    const manualCount = recipientKeyText.split(/[\n,]+/).map((item) => item.trim()).filter(Boolean).length;
+    const manualCount = recipientKeyText
+      .split(/[\n,]+/)
+      .map((item) => item.trim())
+      .filter(Boolean).length;
     return manualCount + selectedRecipients.length;
   }, [recipientKeyText, selectedRecipients]);
 
   const formatWarning = useMemo(() => {
     const firstLine = recipientKeyText.split(/[\n,]+/)[0]?.trim();
     if (firstLine && !isHajimiPublicKey(firstLine)) {
-      return '检测到可能的格式问题，请确认前缀为 hajimi';
+      return "检测到可能的格式问题，请确认前缀为 hajimi";
     }
-    return '';
+    return "";
   }, [recipientKeyText]);
 
   const handleTitleChange = (val: string) => {
@@ -51,13 +65,13 @@ export function useEncryptComposer() {
     setSelectedRecipients((prev) =>
       prev.includes(publicKey)
         ? prev.filter((kid) => kid !== publicKey)
-        : [...prev, publicKey]
+        : [...prev, publicKey],
     );
   };
 
   const encrypt = async () => {
     setError(null);
-    setOutput('');
+    setOutput("");
     setShareUrl(null);
     try {
       const manual = parseRecipients(recipientKeyText);
@@ -80,25 +94,27 @@ export function useEncryptComposer() {
       const envelope = await encryptForRecipients(plaintext, recipients);
       setOutput(envelopeToText(envelope));
     } catch (err) {
-      setError(err instanceof Error ? err.message : '加密失败');
+      setError(err instanceof Error ? err.message : "加密失败");
     } finally {
       setIsEncrypting(false);
     }
   };
 
-  const share = async () => {
+  const share = async (captchaToken: string) => {
     if (!output) return;
     setError(null);
     setIsSharing(true);
     try {
       const envelope = parseEnvelope(output);
       const messageId = await uploadMutation({
-        message: { body: envelope }
+        // 从 cloudflare turnstile 获取 token
+        captchaToken,
+        message: { body: envelope },
       });
       const url = `${window.location.origin}/m/${messageId}`;
       setShareUrl(url);
     } catch (err) {
-      setError(err instanceof Error ? err.message : '上传分享失败');
+      setError(err instanceof Error ? err.message : "上传分享失败");
     } finally {
       setIsSharing(false);
     }
