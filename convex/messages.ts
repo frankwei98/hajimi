@@ -2,7 +2,9 @@ import { action, internalMutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import type { TurnstileServerValidationResponse } from "@marsidev/react-turnstile";
-import { Id } from "./_generated/dataModel";
+import type { Id } from "./_generated/dataModel";
+
+declare const process: { env: Record<string, string | undefined> };
 
 const secret = process.env.CF_TURNSTILE_SECRET || "";
 

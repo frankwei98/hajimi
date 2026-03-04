@@ -1,14 +1,14 @@
-import { x25519 } from '@noble/curves/ed25519.js';
+import { x25519 } from "@noble/curves/ed25519.js";
 import {
   base64UrlToBytes,
   bytesToBase64Url,
   bytesToUtf8,
   utf8ToBytes,
-} from './encoding';
-import { encodeBech32PublicKey } from '../x25519';
+} from "./encoding";
+import { encodeBech32PublicKey } from "../x25519";
 
 export const HYBRID_VERSION = 1 as const;
-export const HYBRID_ALG = 'X25519-HKDF-SHA256-AES-256-GCM' as const;
+export const HYBRID_ALG = "X25519-HKDF-SHA256-AES-256-GCM" as const;
 
 export type HybridRecipient = {
   kid: string;
@@ -26,38 +26,59 @@ export type HybridEnvelope = {
   recipients: HybridRecipient[];
 };
 
-const AAD_PREFIX = 'hajimi-hybrid';
+const AAD_PREFIX = "hajimi-hybrid";
 
 function assertSubtle() {
   if (!globalThis.crypto?.subtle) {
-    throw new Error('当前环境不支持 WebCrypto');
+    throw new Error("当前环境不支持 WebCrypto");
   }
 }
 
-function buildMessageAad(version: number, alg: string, epk: string): Uint8Array {
+function buildMessageAad(
+  version: number,
+  alg: string,
+  epk: string,
+): Uint8Array {
   return utf8ToBytes(`${AAD_PREFIX}|v=${version}|alg=${alg}|epk=${epk}|msg`);
 }
 
-function buildWrapAad(version: number, alg: string, epk: string, kid: string): Uint8Array {
-  return utf8ToBytes(`${AAD_PREFIX}|v=${version}|alg=${alg}|epk=${epk}|kid=${kid}|wrap`);
+function buildWrapAad(
+  version: number,
+  alg: string,
+  epk: string,
+  kid: string,
+): Uint8Array {
+  return utf8ToBytes(
+    `${AAD_PREFIX}|v=${version}|alg=${alg}|epk=${epk}|kid=${kid}|wrap`,
+  );
 }
 
 async function importAesKey(keyBytes: Uint8Array) {
   assertSubtle();
-  return crypto.subtle.importKey('raw', keyBytes, 'AES-GCM', false, ['encrypt', 'decrypt']);
+  return crypto.subtle.importKey(
+    "raw",
+    keyBytes as unknown as BufferSource,
+    "AES-GCM",
+    false,
+    ["encrypt", "decrypt"],
+  );
 }
 
 async function aesGcmEncrypt(
   keyBytes: Uint8Array,
   nonce: Uint8Array,
   plaintext: Uint8Array,
-  additionalData?: Uint8Array
+  additionalData?: Uint8Array,
 ): Promise<Uint8Array> {
   const key = await importAesKey(keyBytes);
   const ciphertext = await crypto.subtle.encrypt(
-    { name: 'AES-GCM', iv: nonce, additionalData },
+    {
+      name: "AES-GCM",
+      iv: nonce as unknown as BufferSource,
+      additionalData: additionalData as unknown as BufferSource,
+    },
     key,
-    plaintext
+    plaintext as unknown as BufferSource,
   );
   return new Uint8Array(ciphertext);
 }
@@ -66,13 +87,17 @@ async function aesGcmDecrypt(
   keyBytes: Uint8Array,
   nonce: Uint8Array,
   ciphertext: Uint8Array,
-  additionalData?: Uint8Array
+  additionalData?: Uint8Array,
 ): Promise<Uint8Array> {
   const key = await importAesKey(keyBytes);
   const plaintext = await crypto.subtle.decrypt(
-    { name: 'AES-GCM', iv: nonce, additionalData },
+    {
+      name: "AES-GCM",
+      iv: nonce as unknown as BufferSource,
+      additionalData: additionalData as unknown as BufferSource,
+    },
     key,
-    ciphertext
+    ciphertext as unknown as BufferSource,
   );
   return new Uint8Array(plaintext);
 }
@@ -81,23 +106,34 @@ async function hkdfSha256(
   ikm: Uint8Array,
   salt: Uint8Array,
   info: Uint8Array,
-  length: number
+  length: number,
 ): Promise<Uint8Array> {
   assertSubtle();
-  const key = await crypto.subtle.importKey('raw', ikm, 'HKDF', false, ['deriveBits']);
+  const key = await crypto.subtle.importKey(
+    "raw",
+    ikm as unknown as BufferSource,
+    "HKDF",
+    false,
+    ["deriveBits"],
+  );
   const bits = await crypto.subtle.deriveBits(
-    { name: 'HKDF', hash: 'SHA-256', salt, info },
+    {
+      name: "HKDF",
+      hash: "SHA-256",
+      salt: salt as unknown as BufferSource,
+      info: info as unknown as BufferSource,
+    },
     key,
-    length * 8
+    length * 8,
   );
   return new Uint8Array(bits);
 }
 
 export async function encryptForRecipients(
   plaintext: Uint8Array,
-  recipients: { kid: string; publicKeyBytes: Uint8Array }[]
+  recipients: { kid: string; publicKeyBytes: Uint8Array }[],
 ): Promise<HybridEnvelope> {
-  if (recipients.length === 0) throw new Error('至少需要一个接收者公钥');
+  if (recipients.length === 0) throw new Error("至少需要一个接收者公钥");
 
   const cek = crypto.getRandomValues(new Uint8Array(32));
   const nonce = crypto.getRandomValues(new Uint8Array(12));
@@ -114,11 +150,16 @@ export async function encryptForRecipients(
     const shared = x25519.getSharedSecret(secretKey, recipient.publicKeyBytes);
     const salt = crypto.getRandomValues(new Uint8Array(16));
     const info = utf8ToBytes(
-      `${AAD_PREFIX}|v=${HYBRID_VERSION}|alg=${HYBRID_ALG}|epk=${epk}|kid=${recipient.kid}|kdf`
+      `${AAD_PREFIX}|v=${HYBRID_VERSION}|alg=${HYBRID_ALG}|epk=${epk}|kid=${recipient.kid}|kdf`,
     );
     const kek = await hkdfSha256(shared, salt, info, 32);
     const wrapNonce = crypto.getRandomValues(new Uint8Array(12));
-    const wrapAad = buildWrapAad(HYBRID_VERSION, HYBRID_ALG, epk, recipient.kid);
+    const wrapAad = buildWrapAad(
+      HYBRID_VERSION,
+      HYBRID_ALG,
+      epk,
+      recipient.kid,
+    );
     const encCEK = await aesGcmEncrypt(kek, wrapNonce, cek, wrapAad);
 
     recipientEntries.push({
@@ -142,33 +183,38 @@ export async function encryptForRecipients(
 export async function decryptForRecipient(
   envelope: HybridEnvelope,
   recipientPrivateKey: Uint8Array,
-  recipientKid?: string
+  recipientKid?: string,
 ): Promise<Uint8Array> {
-  if (envelope.v !== HYBRID_VERSION) throw new Error('不支持的版本');
-  if (envelope.alg !== HYBRID_ALG) throw new Error('不支持的算法');
+  if (envelope.v !== HYBRID_VERSION) throw new Error("不支持的版本");
+  if (envelope.alg !== HYBRID_ALG) throw new Error("不支持的算法");
 
   const epkBytes = base64UrlToBytes(envelope.epk);
   const recipientPubBytes = x25519.getPublicKey(recipientPrivateKey);
   const kid = recipientKid ?? encodeBech32PublicKey(recipientPubBytes);
   const recipientEntry = envelope.recipients.find((item) => item.kid === kid);
-  if (!recipientEntry) throw new Error('未找到匹配的接收者条目');
+  if (!recipientEntry) throw new Error("未找到匹配的接收者条目");
 
   const shared = x25519.getSharedSecret(recipientPrivateKey, epkBytes);
   const salt = base64UrlToBytes(recipientEntry.salt);
   const info = utf8ToBytes(
-    `${AAD_PREFIX}|v=${HYBRID_VERSION}|alg=${HYBRID_ALG}|epk=${envelope.epk}|kid=${kid}|kdf`
+    `${AAD_PREFIX}|v=${HYBRID_VERSION}|alg=${HYBRID_ALG}|epk=${envelope.epk}|kid=${kid}|kdf`,
   );
   const kek = await hkdfSha256(shared, salt, info, 32);
   const wrapNonce = base64UrlToBytes(recipientEntry.wrapNonce);
   const wrapAad = buildWrapAad(HYBRID_VERSION, HYBRID_ALG, envelope.epk, kid);
-  const cek = await aesGcmDecrypt(kek, wrapNonce, base64UrlToBytes(recipientEntry.encCEK), wrapAad);
+  const cek = await aesGcmDecrypt(
+    kek,
+    wrapNonce,
+    base64UrlToBytes(recipientEntry.encCEK),
+    wrapAad,
+  );
 
   const messageAad = buildMessageAad(HYBRID_VERSION, HYBRID_ALG, envelope.epk);
   const plaintext = await aesGcmDecrypt(
     cek,
     base64UrlToBytes(envelope.nonce),
     base64UrlToBytes(envelope.ciphertext),
-    messageAad
+    messageAad,
   );
   return plaintext;
 }
@@ -179,11 +225,15 @@ export function envelopeToText(envelope: HybridEnvelope): string {
 
 export function parseEnvelope(text: string): HybridEnvelope {
   const parsed = JSON.parse(text) as HybridEnvelope;
-  if (!parsed || typeof parsed !== 'object') throw new Error('密文格式不正确');
+  if (!parsed || typeof parsed !== "object") throw new Error("密文格式不正确");
   return parsed;
 }
 
-export function decodePayload(plaintext: Uint8Array): { title?: string; content?: string; raw: string } {
+export function decodePayload(plaintext: Uint8Array): {
+  title?: string;
+  content?: string;
+  raw: string;
+} {
   const raw = bytesToUtf8(plaintext);
   try {
     const parsed = JSON.parse(raw) as { title?: string; content?: string };

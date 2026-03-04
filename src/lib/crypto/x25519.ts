@@ -68,7 +68,7 @@ async function tryWebCrypto(): Promise<X25519Keypair | null> {
     console.log("tryWebCrypto", {
       publicKeyBytes,
       privateKeyBytes,
-      publicKeyBech32: encodeBech32(publicKeyBytes),
+      publicKeyBech32: encodeBech32PublicKey(publicKeyBytes),
       source: "webcrypto",
     });
 
