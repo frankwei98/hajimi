@@ -5,7 +5,7 @@ import { RecipientInputPanel } from './encrypt/components/RecipientInputPanel';
 import { RecipientKeyPicker } from './encrypt/components/RecipientKeyPicker';
 import { MessageEditor } from './encrypt/components/MessageEditor';
 import { EncryptOutputPanel } from './encrypt/components/EncryptOutputPanel';
-import { InlineErrorAlert } from './encrypt/components/InlineErrorAlert';
+import { ErrorAlert } from '../components/ErrorAlert';
 
 export function Encrypt() {
   const {
@@ -59,7 +59,7 @@ export function Encrypt() {
             contentLimit={CONTENT_LIMIT}
           />
 
-          <InlineErrorAlert error={error} />
+          <ErrorAlert error={error} />
 
           <EncryptOutputPanel
             output={output}
