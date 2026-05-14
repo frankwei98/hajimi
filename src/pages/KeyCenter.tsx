@@ -1,302 +1,43 @@
-import { useEffect, useMemo, useState } from 'react';
-import { generateX25519Keypair } from '../lib/crypto/x25519';
-import {
-  decryptExportPayload,
-  decryptPrivateKey,
-  encryptExportPayload,
-  encryptPrivateKey,
-  toHex,
-  EXPORT_VERSION,
-} from '../lib/crypto/keyVault';
-import { addKey, deleteKey, putKeys } from '../lib/storage/keyStore';
-import type { StoredKey } from '../lib/storage/types';
+import { useKeyCenter } from '../lib/hooks/useKeyCenter';
+import { useKeyVaultStore } from '../lib/state/keyVaultStore';
 import { KeyCenterOnboarding } from './key-center/KeyCenterOnboarding';
 import { KeyCenterUnlock } from './key-center/KeyCenterUnlock';
 import { KeyCenterDashboard } from './key-center/KeyCenterDashboard';
-import { useKeyVaultStore } from '../lib/state/keyVaultStore';
 
 export function KeyCenter() {
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
-  const [copiedField, setCopiedField] = useState<string | null>(null);
-  const [pin, setPin] = useState('');
-  const [newPin, setNewPin] = useState('');
-  const [confirmPin, setConfirmPin] = useState('');
-  const [revealedKeys, setRevealedKeys] = useState<Record<string, string>>({});
-  const [initMode, setInitMode] = useState<'create' | 'import'>('create');
-
   const {
+    isGenerating,
+    error,
+    notice,
+    copiedField,
+    pin,
+    newPin,
+    confirmPin,
+    revealedKeys,
+    initMode,
     keys,
     isLoaded,
     isUnlocked,
-    privateKeyByPub,
-    loadKeys,
-    setKeys,
-    setPrivateKey,
-    removePrivateKey,
-    setUnlocked,
-    unlockVault,
-  } = useKeyVaultStore();
+    keysCountLabel,
+    setPin,
+    setNewPin,
+    setConfirmPin,
+    setInitMode,
+    handleUnlock,
+    handleGenerate,
+    handleCopy,
+    handleToggleReveal,
+    handleDelete,
+    handleExport,
+    handleImport,
+    handleInitCreate,
+    handlePinChange,
+    setRevealedKeys,
+    setError,
+    setNotice,
+  } = useKeyCenter();
 
-  useEffect(() => {
-    loadKeys().catch(() => setError('读取本地密钥失败'));
-  }, [loadKeys]);
-
-  const keysCountLabel = useMemo(() => {
-    if (keys.length === 0) return '暂无密钥';
-    return `已保存 ${keys.length} 把密钥`;
-  }, [keys.length]);
-
-  const handleUnlock = async () => {
-    if (!/^\d{6}$/.test(pin)) {
-      setError('请输入 6 位 PIN 以解锁');
-      return;
-    }
-    setError(null);
-    setNotice(null);
-    try {
-      await unlockVault(pin);
-    } catch {
-      setError('PIN 错误，解锁失败');
-    }
-  };
-
-  const handleGenerate = async () => {
-    if (!/^\d{6}$/.test(pin)) {
-      setError('请设置 6 位数字 PIN 用于加密私钥');
-      return;
-    }
-    setNotice(null);
-    setIsGenerating(true);
-    setError(null);
-    try {
-      const result = await generateX25519Keypair();
-      const encryption = await encryptPrivateKey(result.privateKeyBytes, pin);
-      const entry: StoredKey = {
-        id: crypto.randomUUID(),
-        createdAt: new Date().toISOString(),
-        publicKeyBech32: result.publicKeyBech32,
-        publicKeyHex: toHex(result.publicKeyBytes),
-        encryptedPrivateKey: encryption.encryptedPrivateKey,
-        iv: encryption.iv,
-        salt: encryption.salt,
-        kdfIterations: encryption.kdfIterations,
-        source: result.source,
-      };
-      await addKey(entry);
-      const next = [entry, ...keys];
-      setKeys(next);
-      if (isUnlocked) {
-        setPrivateKey(entry.publicKeyBech32, result.privateKeyBytes);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '生成失败');
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  const handleCopy = async (label: string, value: string) => {
-    try {
-      await navigator.clipboard.writeText(value);
-      setCopiedField(label);
-      setTimeout(() => setCopiedField(null), 1200);
-    } catch {
-      setCopiedField(null);
-    }
-  };
-
-  const handleToggleReveal = async (entry: StoredKey) => {
-    if (revealedKeys[entry.id]) {
-      setRevealedKeys((prev) => {
-        const next = { ...prev };
-        delete next[entry.id];
-        return next;
-      });
-      return;
-    }
-    setError(null);
-    setNotice(null);
-    try {
-      let privateKeyBytes = privateKeyByPub[entry.publicKeyBech32];
-      if (!privateKeyBytes) {
-        if (!/^\d{6}$/.test(pin)) {
-          throw new Error('请输入 6 位数字 PIN 以解密私钥');
-        }
-        privateKeyBytes = await decryptPrivateKey(entry, pin);
-        if (isUnlocked) {
-          setPrivateKey(entry.publicKeyBech32, privateKeyBytes);
-        }
-      }
-      setRevealedKeys((prev) => ({
-        ...prev,
-        [entry.id]: toHex(privateKeyBytes),
-      }));
-    } catch {
-      setError('口令错误或解密失败');
-    }
-  };
-
-  const handleDelete = async (entryId: string) => {
-    try {
-      const entry = keys.find((item) => item.id === entryId);
-      await deleteKey(entryId);
-      const next = keys.filter((item) => item.id !== entryId);
-      setKeys(next);
-      setRevealedKeys((prev) => {
-        const next = { ...prev };
-        delete next[entryId];
-        return next;
-      });
-      if (entry) {
-        removePrivateKey(entry.publicKeyBech32);
-      }
-      setNotice('已删除');
-    } catch {
-      setError('删除失败');
-    }
-  };
-
-  const handleExport = async () => {
-    if (!/^\d{6}$/.test(pin)) {
-      setError('请输入 6 位数字 PIN 以导出');
-      return;
-    }
-    if (keys.length === 0) {
-      setError('没有可导出的密钥');
-      return;
-    }
-    setError(null);
-    setNotice(null);
-    try {
-      const payload = {
-        version: EXPORT_VERSION,
-        exportedAt: new Date().toISOString(),
-        keys,
-      };
-      const encryptedPackage = await encryptExportPayload(payload, pin);
-      const filename = `hajimi-keystore-${new Date()
-        .toISOString()
-        .replace(/[:.]/g, '')}.json`;
-      const blob = new Blob([JSON.stringify(encryptedPackage, null, 2)], {
-        type: 'application/json',
-      });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = filename;
-      link.click();
-      URL.revokeObjectURL(url);
-      setNotice('导出完成');
-    } catch {
-      setError('导出失败');
-    }
-  };
-
-  const handleImport = async (file: File, onSuccess?: () => void) => {
-    if (!/^\d{6}$/.test(pin)) {
-      setError('请输入 6 位数字 PIN 以导入');
-      return;
-    }
-    setError(null);
-    setNotice(null);
-    try {
-      const text = await file.text();
-      const parsed = JSON.parse(text) as {
-        version: number;
-        kdfIterations: number;
-        salt: string;
-        iv: string;
-        data: string;
-      };
-      const decrypted = await decryptExportPayload(parsed, pin);
-      if (!Array.isArray(decrypted.keys)) {
-        throw new Error('无效的密钥包');
-      }
-      const existing = new Map(keys.map((entry) => [entry.publicKeyBech32, entry]));
-      const incoming: StoredKey[] = decrypted.keys
-        .filter((entry) => entry?.publicKeyBech32 && entry?.encryptedPrivateKey)
-        .filter((entry) => !existing.has(entry.publicKeyBech32))
-        .map((entry) => ({
-          ...entry,
-          id: crypto.randomUUID(),
-        }));
-      if (incoming.length === 0) {
-        setNotice('没有可导入的新密钥');
-        if (keys.length === 0 && onSuccess) onSuccess();
-        return;
-      }
-      await putKeys(incoming);
-      const merged = [...incoming, ...keys].sort((a, b) =>
-        b.createdAt.localeCompare(a.createdAt)
-      );
-      setKeys(merged);
-      if (isUnlocked) {
-        await unlockVault(pin);
-      }
-      setNotice(`已导入 ${incoming.length} 把密钥`);
-      onSuccess?.();
-    } catch {
-      setError('导入失败或 PIN 错误');
-    } finally {
-      // input reset handled by component
-    }
-  };
-
-  const handleInitCreate = () => {
-    if (!/^\d{6}$/.test(pin)) {
-      setError('请设置 6 位数字 PIN');
-      return;
-    }
-    if (pin !== confirmPin) {
-      setError('两次输入的 PIN 不一致');
-      return;
-    }
-    setError(null);
-    setNotice(null);
-    setUnlocked(true);
-  };
-
-  const handlePinChange = async () => {
-    if (!/^\d{6}$/.test(pin)) {
-      setError('请输入旧的 6 位 PIN');
-      return;
-    }
-    if (!/^\d{6}$/.test(newPin)) {
-      setError('请输入新的 6 位 PIN');
-      return;
-    }
-    if (newPin !== confirmPin) {
-      setError('两次输入的新 PIN 不一致');
-      return;
-    }
-    setError(null);
-    setNotice(null);
-    try {
-      const updated: StoredKey[] = [];
-      for (const entry of keys) {
-        const privateKeyBytes = await decryptPrivateKey(entry, pin);
-        const encryption = await encryptPrivateKey(privateKeyBytes, newPin);
-        updated.push({
-          ...entry,
-          encryptedPrivateKey: encryption.encryptedPrivateKey,
-          iv: encryption.iv,
-          salt: encryption.salt,
-          kdfIterations: encryption.kdfIterations,
-        });
-      }
-      await putKeys(updated);
-      const sorted = updated.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-      setKeys(sorted);
-      setRevealedKeys({});
-      setNewPin('');
-      setConfirmPin('');
-      setNotice('PIN 已更新');
-    } catch {
-      setError('PIN 更新失败（旧 PIN 可能不正确）');
-    }
-  };
+  const { unlockVault } = useKeyVaultStore();
 
   if (!isLoaded) {
     return (
