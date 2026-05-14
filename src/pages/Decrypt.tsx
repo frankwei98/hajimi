@@ -1,17 +1,14 @@
 import { useEffect, useState } from 'react';
 import { KeyRound, Unlock, FileText, Copy } from 'lucide-react';
 import { PinInput } from '../components/PinInput';
+import { ErrorAlert } from '../components/ErrorAlert';
 import {
   decodePayload,
   decryptForRecipient,
   parseEnvelope,
-  type HybridEnvelope,
+  pickMatchingKid,
 } from '../lib/crypto/hybrid/hybrid';
 import { useKeyVaultStore } from '../lib/state/keyVaultStore';
-
-function pickMatchingKid(envelope: HybridEnvelope, available: string[]) {
-  return envelope.recipients.find((item) => available.includes(item.kid))?.kid ?? '';
-}
 
 export function Decrypt() {
   const [pin, setPin] = useState('');
@@ -118,11 +115,7 @@ export function Decrypt() {
               <div className="text-xs text-gray-500">已保存 {keys.length} 把密钥</div>
               <PinInput value={pin} onChange={setPin} disabled={isBusy || keys.length === 0} />
               
-              {error ? (
-                <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                  {error}
-                </div>
-              ) : null}
+              <ErrorAlert error={error} />
 
               <div className="flex flex-wrap gap-2">
                 <button
@@ -166,11 +159,7 @@ export function Decrypt() {
                 />
               </div>
 
-              {error ? (
-                <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                  {error}
-                </div>
-              ) : null}
+              <ErrorAlert error={error} />
 
               <div className="flex justify-end">
                 <button

@@ -3,19 +3,15 @@ import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { Loader2, AlertCircle, FileText, Calendar, ShieldCheck, Lock, Unlock, KeyRound, Copy } from 'lucide-react';
 import type { Id } from '../../convex/_generated/dataModel';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useKeyVaultStore } from '../lib/state/keyVaultStore';
 import { KeyCenterUnlock } from './key-center/KeyCenterUnlock';
 import {
   parseEnvelope,
   decryptForRecipient,
   decodePayload,
-  type HybridEnvelope,
+  pickMatchingKid,
 } from '../lib/crypto/hybrid/hybrid';
-
-function pickMatchingKid(envelope: HybridEnvelope, available: string[]) {
-  return envelope.recipients.find((item) => available.includes(item.kid))?.kid ?? '';
-}
 
 export function Message() {
   const { messageId } = useParams();
@@ -50,7 +46,7 @@ export function Message() {
     }
   };
 
-  const handleDecrypt = async () => {
+  const handleDecrypt = useCallback(async () => {
     if (!message || !isUnlocked) return;
     
     setDecryptError(null);
@@ -79,18 +75,17 @@ export function Message() {
       setDecryptedData(payload);
     } catch (err) {
       setDecryptError(err instanceof Error ? err.message : '解密失败');
-      console.error('解密失败:', message);
     } finally {
       setIsDecrypting(false);
     }
-  };
+  }, [message, isUnlocked, privateKeyByPub]);
 
   // Automatically decrypt when unlocked and message is available
   useEffect(() => {
     if (isUnlocked && message && !decryptedData && !decryptError && !isDecrypting) {
       handleDecrypt();
     }
-  }, [isUnlocked, message]);
+  }, [isUnlocked, message, decryptedData, decryptError, isDecrypting, handleDecrypt]);
 
   // Loading state
   if (message === undefined || !isLoaded) {

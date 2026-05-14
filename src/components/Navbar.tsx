@@ -1,12 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { Home, Lock, Key, Menu, X, Unlock } from 'lucide-react';
-import { clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
 import { useState } from 'react';
-
-function cn(...inputs: (string | undefined | null | false)[]) {
-  return twMerge(clsx(inputs));
-}
+import { cn } from '../lib/utils/cn';
 
 export function Navbar() {
   const location = useLocation();
