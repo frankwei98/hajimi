@@ -1,5 +1,6 @@
 import { bech32 } from "bech32";
 import { x25519 } from "@noble/curves/ed25519.js";
+import { base64UrlToBytes } from "./hybrid/encoding";
 
 export type X25519Keypair = {
   publicKeyBytes: Uint8Array;
@@ -35,16 +36,6 @@ export function isHajimiPublicKey(value: string): boolean {
   }
 }
 
-function base64UrlToBytes(input: string): Uint8Array {
-  const base64 = input.replace(/-/g, "+").replace(/_/g, "/");
-  const padLen = (4 - (base64.length % 4)) % 4;
-  const padded = base64 + "=".repeat(padLen);
-  const bin = atob(padded);
-  const out = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i += 1) out[i] = bin.charCodeAt(i);
-  return out;
-}
-
 async function tryWebCrypto(): Promise<X25519Keypair | null> {
   if (!globalThis.crypto?.subtle) return null;
   try {
@@ -52,7 +43,6 @@ async function tryWebCrypto(): Promise<X25519Keypair | null> {
       "deriveKey",
       "deriveBits",
     ]);
-    console.log("tryWebCrypto", keyPair);
     const publicKeyBytes = new Uint8Array(
       await crypto.subtle.exportKey(
         "raw",
@@ -65,12 +55,6 @@ async function tryWebCrypto(): Promise<X25519Keypair | null> {
     )) as JsonWebKey;
     if (!jwk.d) throw new Error("Missing JWK private key material");
     const privateKeyBytes = base64UrlToBytes(jwk.d);
-    console.log("tryWebCrypto", {
-      publicKeyBytes,
-      privateKeyBytes,
-      publicKeyBech32: encodeBech32PublicKey(publicKeyBytes),
-      source: "webcrypto",
-    });
 
     return {
       publicKeyBytes,
@@ -78,8 +62,7 @@ async function tryWebCrypto(): Promise<X25519Keypair | null> {
       publicKeyBech32: encodeBech32PublicKey(publicKeyBytes),
       source: "webcrypto",
     };
-  } catch (error) {
-    console.error("tryWebCrypto::error:", error);
+  } catch {
     return null;
   }
 }
