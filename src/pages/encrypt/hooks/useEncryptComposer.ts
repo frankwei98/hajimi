@@ -106,7 +106,6 @@ export function useEncryptComposer() {
     setIsSharing(true);
     try {
       const envelope = parseEnvelope(output);
-      console.log(captchaToken);
       const messageId = await upload({
         // 从 cloudflare turnstile 获取 token
         token: captchaToken,

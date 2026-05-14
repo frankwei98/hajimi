@@ -61,6 +61,7 @@ export function PinInput({
         setVisibleIndex(null);
       }, 1200);
     } else if (value.length < prevValueLength.current) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setVisibleIndex(null);
     }
 
