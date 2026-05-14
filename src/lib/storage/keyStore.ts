@@ -4,7 +4,13 @@ const DB_NAME = 'hajimi';
 const DB_VERSION = 2;
 const STORE_NAME = 'keys';
 
+let dbInstance: IDBDatabase | null = null;
+
 function openDb(): Promise<IDBDatabase> {
+  if (dbInstance) {
+    return Promise.resolve(dbInstance);
+  }
+  
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
     request.onupgradeneeded = () => {
@@ -19,8 +25,15 @@ function openDb(): Promise<IDBDatabase> {
         }
       }
     };
-    request.onsuccess = () => resolve(request.result);
+    request.onsuccess = () => {
+      dbInstance = request.result;
+      resolve(dbInstance);
+    };
     request.onerror = () => reject(request.error ?? new Error('IndexedDB 打开失败'));
+    request.onblocked = () => {
+      dbInstance = null;
+      reject(new Error('IndexedDB 被阻塞'));
+    };
   });
 }
 
