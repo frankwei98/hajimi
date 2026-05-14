@@ -1,3 +1,5 @@
+import { PinInput } from '../../components/PinInput';
+
 type PinChangePanelProps = {
   newPin: string;
   confirmPin: string;
@@ -17,28 +19,8 @@ export function PinChangePanel({
     <div className="rounded-md border border-gray-200 bg-gray-50 p-4 space-y-3">
       <div className="text-sm font-semibold text-gray-800">PIN 修改</div>
       <div className="flex flex-wrap items-center gap-3">
-        <input
-          type="password"
-          inputMode="numeric"
-          placeholder="新 PIN"
-          value={newPin}
-          onChange={(event) => {
-            const next = event.target.value.replace(/\D/g, '').slice(0, 6);
-            onNewPinChange(next);
-          }}
-          className="w-28 rounded-md border border-gray-300 px-3 py-2 text-xs text-gray-900 shadow-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
-        />
-        <input
-          type="password"
-          inputMode="numeric"
-          placeholder="确认新 PIN"
-          value={confirmPin}
-          onChange={(event) => {
-            const next = event.target.value.replace(/\D/g, '').slice(0, 6);
-            onConfirmPinChange(next);
-          }}
-          className="w-28 rounded-md border border-gray-300 px-3 py-2 text-xs text-gray-900 shadow-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
-        />
+        <PinInput value={newPin} onChange={onNewPinChange} />
+        <PinInput value={confirmPin} onChange={onConfirmPinChange} onEnter={onSubmit} />
         <button
           type="button"
           onClick={onSubmit}
