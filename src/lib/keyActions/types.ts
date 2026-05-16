@@ -1,4 +1,4 @@
-import type { StoredKey } from '../../storage/types';
+import type { StoredKey } from '../storage/types';
 
 export interface KeyActionDeps {
   pin: string;
