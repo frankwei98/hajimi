@@ -10,7 +10,7 @@ import {
   encryptForRecipients,
   envelopeToText,
   parseEnvelope,
-} from "../../../lib/crypto/hybrid/hybrid";
+} from "../../../lib/crypto/hybrid";
 import { utf8ToBytes } from "../../../lib/crypto/hybrid/encoding";
 import {
   parseRecipients,

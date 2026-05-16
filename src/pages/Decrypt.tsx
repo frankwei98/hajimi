@@ -7,7 +7,7 @@ import {
   decryptForRecipient,
   parseEnvelope,
   pickMatchingKid,
-} from '../lib/crypto/hybrid/hybrid';
+} from '../lib/crypto/hybrid';
 import { useKeyVaultStore } from '../lib/state/keyVaultStore';
 
 export function Decrypt() {
