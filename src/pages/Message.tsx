@@ -11,7 +11,7 @@ import {
   decryptForRecipient,
   decodePayload,
   pickMatchingKid,
-} from '../lib/crypto/hybrid/hybrid';
+} from '../lib/crypto/hybrid';
 
 export function Message() {
   const { messageId } = useParams();

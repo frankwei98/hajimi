@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useKeyVaultStore } from '../state/keyVaultStore';
-import { useKeyActions } from './useKeyActions';
+import { useKeyGenerate, useKeyReveal, useKeyVaultActions, useKeyPinChange } from '../keyActions';
 
 export function useKeyCenter() {
   const [isGenerating, setIsGenerating] = useState(false);
@@ -23,11 +23,15 @@ export function useKeyCenter() {
     unlockVault,
   } = useKeyVaultStore();
 
-  const actions = useKeyActions({
+  const deps = {
     pin, newPin, confirmPin, keys, isUnlocked, revealedKeys,
     setError, setNotice, setCopiedField, setIsGenerating,
     setKeys, setRevealedKeys, setNewPin, setConfirmPin, unlockVault,
-  });
+  };
+  const gen = useKeyGenerate(deps);
+  const rev = useKeyReveal(deps);
+  const vlt = useKeyVaultActions(deps);
+  const pinA = useKeyPinChange(deps);
 
   useEffect(() => {
     loadKeys().catch(() => setError('读取本地密钥失败'));
@@ -86,7 +90,10 @@ export function useKeyCenter() {
     setInitMode,
     handleUnlock,
     handleInitCreate,
-    ...actions,
+    ...gen,
+    ...rev,
+    ...vlt,
+    ...pinA,
     setRevealedKeys,
     setError,
     setNotice,
