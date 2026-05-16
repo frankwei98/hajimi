@@ -1,27 +1,15 @@
-import { useState, useEffect, useMemo } from "react";
-import { useAction } from "convex/react";
-import { api } from "../../../../convex/_generated/api";
+import { useState, useEffect } from "react";
 import { useKeyVaultStore } from "../../../lib/state/keyVaultStore";
-import {
-  decodeBech32PublicKey,
-  isHajimiPublicKey,
-} from "../../../lib/crypto/x25519";
-import {
-  encryptForRecipients,
-  envelopeToText,
-  parseEnvelope,
-} from "../../../lib/crypto/hybrid";
+import { decodeBech32PublicKey } from "../../../lib/crypto/x25519";
+import { encryptForRecipients, envelopeToText } from "../../../lib/crypto/hybrid";
 import { utf8ToBytes } from "../../../lib/crypto/hybrid/encoding";
-import {
-  parseRecipients,
-  mergeRecipients,
-  validateEncryptInput,
-} from "../utils/recipients";
+import { parseRecipients, mergeRecipients, validateEncryptInput } from "../utils/recipients";
 import { TITLE_LIMIT, CONTENT_LIMIT } from "../constants";
+import { useShareAction } from "./useShareAction";
+import { useRecipientManager } from "./useRecipientManager";
 
 export function useEncryptComposer() {
   const [recipientKeyText, setRecipientKeyText] = useState("");
-  const [selectedRecipients, setSelectedRecipients] = useState<string[]>([]);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [output, setOutput] = useState("");
@@ -31,43 +19,13 @@ export function useEncryptComposer() {
   const [shareUrl, setShareUrl] = useState<string | null>(null);
 
   const { keys, loadKeys } = useKeyVaultStore();
-  const upload = useAction(api.messages.uploadMessage);
+  const { share: shareAction } = useShareAction();
+  const { selectedRecipients, recipientCount, formatWarning, toggleRecipient } = useRecipientManager(recipientKeyText);
 
-  useEffect(() => {
-    loadKeys().catch(() => undefined);
-  }, [loadKeys]);
+  useEffect(() => { loadKeys().catch(() => undefined); }, [loadKeys]);
 
-  const recipientCount = useMemo(() => {
-    const manualCount = recipientKeyText
-      .split(/[\n,]+/)
-      .map((item) => item.trim())
-      .filter(Boolean).length;
-    return manualCount + selectedRecipients.length;
-  }, [recipientKeyText, selectedRecipients]);
-
-  const formatWarning = useMemo(() => {
-    const firstLine = recipientKeyText.split(/[\n,]+/)[0]?.trim();
-    if (firstLine && !isHajimiPublicKey(firstLine)) {
-      return "检测到可能的格式问题，请确认前缀为 hajimi";
-    }
-    return "";
-  }, [recipientKeyText]);
-
-  const handleTitleChange = (val: string) => {
-    if (val.length <= TITLE_LIMIT) setTitle(val);
-  };
-
-  const handleContentChange = (val: string) => {
-    if (val.length <= CONTENT_LIMIT) setContent(val);
-  };
-
-  const toggleRecipient = (publicKey: string) => {
-    setSelectedRecipients((prev) =>
-      prev.includes(publicKey)
-        ? prev.filter((kid) => kid !== publicKey)
-        : [...prev, publicKey],
-    );
-  };
+  const handleTitleChange = (val: string) => { if (val.length <= TITLE_LIMIT) setTitle(val); };
+  const handleContentChange = (val: string) => { if (val.length <= CONTENT_LIMIT) setContent(val); };
 
   const encrypt = async () => {
     setError(null);
@@ -75,21 +33,12 @@ export function useEncryptComposer() {
     setShareUrl(null);
     try {
       const manual = parseRecipients(recipientKeyText);
-      const selected = selectedRecipients.map((kid) => ({
-        kid,
-        publicKeyBytes: decodeBech32PublicKey(kid),
-      }));
+      const selected = selectedRecipients.map((kid) => ({ kid, publicKeyBytes: decodeBech32PublicKey(kid) }));
       const recipients = mergeRecipients(manual, selected);
-
       const validationError = validateEncryptInput(recipients, title, content);
       if (validationError) throw new Error(validationError);
-
       setIsEncrypting(true);
-      const payload = {
-        title: title.trim(),
-        content: content.trim(),
-        createdAt: new Date().toISOString(),
-      };
+      const payload = { title: title.trim(), content: content.trim(), createdAt: new Date().toISOString() };
       const plaintext = utf8ToBytes(JSON.stringify(payload));
       const envelope = await encryptForRecipients(plaintext, recipients);
       setOutput(envelopeToText(envelope));
@@ -105,13 +54,7 @@ export function useEncryptComposer() {
     setError(null);
     setIsSharing(true);
     try {
-      const envelope = parseEnvelope(output);
-      const messageId = await upload({
-        // 从 cloudflare turnstile 获取 token
-        token: captchaToken,
-        message: { body: envelope },
-      });
-      const url = `${window.location.origin}/m/${messageId}`;
+      const url = await shareAction(output, captchaToken);
       setShareUrl(url);
     } catch (err) {
       setError(err instanceof Error ? err.message : "上传分享失败");
@@ -120,34 +63,14 @@ export function useEncryptComposer() {
     }
   };
 
-  const copyOutput = async () => {
-    if (output) await navigator.clipboard.writeText(output);
-  };
-
-  const copyShareUrl = async () => {
-    if (shareUrl) await navigator.clipboard.writeText(shareUrl);
-  };
+  const copyOutput = async () => { if (output) await navigator.clipboard.writeText(output); };
+  const copyShareUrl = async () => { if (shareUrl) await navigator.clipboard.writeText(shareUrl); };
 
   return {
-    recipientKeyText,
-    setRecipientKeyText,
-    selectedRecipients,
-    title,
-    content,
-    output,
-    error,
-    isEncrypting,
-    isSharing,
-    shareUrl,
-    keys,
-    recipientCount,
-    formatWarning,
-    handleTitleChange,
-    handleContentChange,
-    toggleRecipient,
-    encrypt,
-    share,
-    copyOutput,
-    copyShareUrl,
+    recipientKeyText, setRecipientKeyText, selectedRecipients,
+    title, content, output, error, isEncrypting, isSharing, shareUrl,
+    keys, recipientCount, formatWarning,
+    handleTitleChange, handleContentChange, toggleRecipient,
+    encrypt, share, copyOutput, copyShareUrl,
   };
 }
