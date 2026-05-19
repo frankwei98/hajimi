@@ -1,11 +1,12 @@
 import { cronJobs } from "convex/server";
 import { internal } from "./_generated/api";
 
-export default cronJobs([
-  {
-    name: "cleanupExpiredMessages",
-    cron: "0 */6 * * *",
-    function: internal.messages.iCleanupExpiredMessages,
-    args: {},
-  },
-]);
+const cron = cronJobs();
+
+cron.cron(
+  "Clean Up Expired Messages",
+  "0 */6 * * *",
+  internal.messages.iCleanupExpiredMessages,
+);
+
+export default cron;
