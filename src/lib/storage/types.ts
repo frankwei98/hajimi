@@ -9,5 +9,15 @@ export type StoredKey = {
   iv: string;
   salt: string;
   kdfIterations: number;
-  source: X25519Keypair['source'];
+  source: X25519Keypair['source'] | 'mnemonic';
+  label?: string;
+  avatarUrl?: string;
+};
+
+export type Contact = {
+  id: string;
+  handle: string;
+  publicKeyBech32: string;
+  avatarUrl?: string;
+  addedAt: string;
 };

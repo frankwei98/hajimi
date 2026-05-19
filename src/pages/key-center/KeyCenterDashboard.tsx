@@ -4,6 +4,8 @@ import { KeysTable } from './KeysTable';
 import { RevealPanel } from './RevealPanel';
 import { PinChangePanel } from './PinChangePanel';
 import { ImportExportActions } from './ImportExportActions';
+import { MnemonicDisplay } from './MnemonicDisplay';
+import { MnemonicRecoveryPanel } from './MnemonicRecoveryPanel';
 
 type KeyCenterDashboardProps = {
   pin: string;
@@ -16,6 +18,8 @@ type KeyCenterDashboardProps = {
   revealedKeys: Record<string, string>;
   newPin: string;
   confirmPin: string;
+  generatedMnemonic: string | null;
+  mnemonicError: string | null;
   onPinChange: (value: string) => void;
   onGenerate: () => void;
   onExport: () => void;
@@ -27,14 +31,17 @@ type KeyCenterDashboardProps = {
   onNewPinChange: (value: string) => void;
   onConfirmPinChange: (value: string) => void;
   onPinUpdate: () => void;
+  onRecoverFromMnemonic: (mnemonic: string) => void;
+  onUpdateIdentity: (entryId: string, updates: { label?: string; avatarUrl?: string }) => void;
 };
 
 export function KeyCenterDashboard({
   pin, keysCountLabel, isGenerating, notice, error, keys,
-  copiedField, revealedKeys, newPin, confirmPin,
+  copiedField, revealedKeys, newPin, confirmPin, generatedMnemonic, mnemonicError,
   onPinChange, onGenerate, onExport, onImport, onCopy,
   onToggleReveal, onDelete, onHideRevealed,
   onNewPinChange, onConfirmPinChange, onPinUpdate,
+  onRecoverFromMnemonic, onUpdateIdentity,
 }: KeyCenterDashboardProps) {
   return (
     <div className="bg-white shadow sm:rounded-lg p-6 space-y-6">
@@ -63,9 +70,13 @@ export function KeyCenterDashboard({
         {notice && <div className="rounded-md border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">{notice}</div>}
         {error && <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
 
+        <MnemonicDisplay mnemonic={generatedMnemonic} onCopy={onCopy} copiedField={copiedField} />
+
         <ImportExportActions onExport={onExport} onImport={onImport} />
 
-        <KeysTable keys={keys} copiedField={copiedField} onCopy={onCopy} onToggleReveal={onToggleReveal} onDelete={onDelete} revealedKeys={revealedKeys} />
+        <MnemonicRecoveryPanel pin={pin} error={mnemonicError} onRecover={onRecoverFromMnemonic} />
+
+        <KeysTable keys={keys} copiedField={copiedField} onCopy={onCopy} onToggleReveal={onToggleReveal} onDelete={onDelete} revealedKeys={revealedKeys} onUpdateIdentity={onUpdateIdentity} />
         <RevealPanel revealedKeys={revealedKeys} onHideAll={onHideRevealed} />
         <PinChangePanel newPin={newPin} confirmPin={confirmPin} onNewPinChange={onNewPinChange} onConfirmPinChange={onConfirmPinChange} onSubmit={onPinUpdate} />
       </div>

@@ -1,8 +1,17 @@
 import { bytesToUtf8 } from "./encoding";
-import { HYBRID_VERSION, HYBRID_ALG, type HybridEnvelope } from "./types";
+import { bytesToBase58, base58ToBytes } from "./base58";
+import { bytesToEmoji, emojiToBytes, EMOJI_DICT } from "./emoji";
+import { HYBRID_VERSION, HYBRID_ALG, type HybridEnvelope, type EncodingFormat } from "./types";
 
 export function envelopeToText(envelope: HybridEnvelope): string {
   return JSON.stringify(envelope, null, 2);
+}
+
+export function envelopeToTextWithFormat(envelope: HybridEnvelope, format: EncodingFormat): string {
+  if (format === "json") return envelopeToText(envelope);
+  const jsonBytes = new TextEncoder().encode(JSON.stringify(envelope));
+  if (format === "base58") return bytesToBase58(jsonBytes);
+  return bytesToEmoji(jsonBytes);
 }
 
 export function parseEnvelope(text: string): HybridEnvelope {
@@ -47,6 +56,45 @@ export function parseEnvelope(text: string): HybridEnvelope {
   }
 
   return envelope as HybridEnvelope;
+}
+
+function looksLikeBase58(text: string): boolean {
+  return /^[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]+$/.test(text.trim());
+}
+
+function looksLikeEmoji(text: string): boolean {
+  const trimmed = text.trim();
+  if (trimmed.length < 2) return false;
+  const chars = [...trimmed];
+  const dictSet = new Set(EMOJI_DICT);
+  return chars.some((c) => dictSet.has(c)) && chars.every((c) => dictSet.has(c) || /\s/.test(c));
+}
+
+export function parseAnyEnvelope(text: string): HybridEnvelope {
+  const trimmed = text.trim();
+  try {
+    return parseEnvelope(trimmed);
+  } catch {
+    if (looksLikeBase58(trimmed)) {
+      try {
+        const jsonBytes = base58ToBytes(trimmed);
+        const json = new TextDecoder().decode(jsonBytes);
+        return parseEnvelope(json);
+      } catch {
+        throw new Error("Base58 密文解码失败");
+      }
+    }
+    if (looksLikeEmoji(trimmed)) {
+      try {
+        const jsonBytes = emojiToBytes(trimmed);
+        const json = new TextDecoder().decode(jsonBytes);
+        return parseEnvelope(json);
+      } catch {
+        throw new Error("Emoji 密文解码失败");
+      }
+    }
+    throw new Error("无法识别密文格式（支持 JSON / Base58 / Emoji）");
+  }
 }
 
 export function decodePayload(plaintext: Uint8Array): { title?: string; content?: string; raw: string } {

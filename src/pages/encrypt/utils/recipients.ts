@@ -1,4 +1,4 @@
-import { decodeBech32PublicKey } from '../../../lib/crypto/x25519';
+import { decodeBech32PublicKey, isHajimiPublicKey } from '../../../lib/crypto/x25519';
 
 export interface RecipientEntry {
   kid: string;
@@ -11,9 +11,10 @@ export function parseRecipients(input: string): RecipientEntry[] {
     .map((item) => item.trim())
     .filter(Boolean);
   const unique = Array.from(new Set(raw));
-  return unique.map((kid) => ({ 
-    kid, 
-    publicKeyBytes: decodeBech32PublicKey(kid) 
+  const valid = unique.filter(isHajimiPublicKey);
+  return valid.map((kid) => ({
+    kid,
+    publicKeyBytes: decodeBech32PublicKey(kid)
   }));
 }
 

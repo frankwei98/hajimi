@@ -57,7 +57,7 @@ const msgObj = v.object({
 });
 
 export const uploadMessage = action({
-  args: { token: v.string(), message: msgObj },
+  args: { token: v.string(), message: msgObj, removeAt: v.optional(v.number()) },
   handler: async (ctx, args) => {
     const isVerifiedReq = await validateTurnstile(args.token);
     if (!isVerifiedReq) {
@@ -67,6 +67,7 @@ export const uploadMessage = action({
       internal.messages.iUploadMessage,
       {
         message: args.message,
+        removeAt: args.removeAt,
       },
     );
     return res;
@@ -84,9 +85,34 @@ export const getMessage = query({
 export const iUploadMessage = internalMutation({
   args: {
     message: msgObj,
+    removeAt: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const newMessageId = await ctx.db.insert("message", args.message);
+    const newMessageId = await ctx.db.insert("message", {
+      body: args.message.body,
+      removeAt: args.removeAt,
+    });
     return newMessageId;
+  },
+});
+
+export const iCleanupExpiredMessages = internalMutation({
+  handler: async (ctx) => {
+    const now = Date.now();
+    let deleted = 0;
+    let hasMore = true;
+    while (hasMore) {
+      const expired = await ctx.db
+        .query("message")
+        .withIndex("by_removeAt", (q) => q.lt("removeAt", now))
+        .take(100);
+      if (expired.length === 0) break;
+      for (const msg of expired) {
+        await ctx.db.delete(msg._id);
+      }
+      deleted += expired.length;
+      hasMore = expired.length === 100;
+    }
+    return { deleted };
   },
 });

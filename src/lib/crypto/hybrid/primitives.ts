@@ -20,7 +20,7 @@ export async function importAesKey(keyBytes: Uint8Array) {
   assertSubtle();
   return crypto.subtle.importKey(
     "raw",
-    keyBytes as unknown as BufferSource,
+    keyBytes as BufferSource,
     "AES-GCM",
     false,
     ["encrypt", "decrypt"],
@@ -35,9 +35,9 @@ export async function aesGcmEncrypt(
 ): Promise<Uint8Array> {
   const key = await importAesKey(keyBytes);
   const ciphertext = await crypto.subtle.encrypt(
-    { name: "AES-GCM", iv: nonce as unknown as BufferSource, additionalData: additionalData as unknown as BufferSource },
+    { name: "AES-GCM", iv: nonce as BufferSource, additionalData: additionalData as BufferSource },
     key,
-    plaintext as unknown as BufferSource,
+    plaintext as BufferSource,
   );
   return new Uint8Array(ciphertext);
 }
@@ -50,9 +50,9 @@ export async function aesGcmDecrypt(
 ): Promise<Uint8Array> {
   const key = await importAesKey(keyBytes);
   const plaintext = await crypto.subtle.decrypt(
-    { name: "AES-GCM", iv: nonce as unknown as BufferSource, additionalData: additionalData as unknown as BufferSource },
+    { name: "AES-GCM", iv: nonce as BufferSource, additionalData: additionalData as BufferSource },
     key,
-    ciphertext as unknown as BufferSource,
+    ciphertext as BufferSource,
   );
   return new Uint8Array(plaintext);
 }
@@ -64,9 +64,9 @@ export async function hkdfSha256(
   length: number,
 ): Promise<Uint8Array> {
   assertSubtle();
-  const key = await crypto.subtle.importKey("raw", ikm as unknown as BufferSource, "HKDF", false, ["deriveBits"]);
+  const key = await crypto.subtle.importKey("raw", ikm as BufferSource, "HKDF", false, ["deriveBits"]);
   const bits = await crypto.subtle.deriveBits(
-    { name: "HKDF", hash: "SHA-256", salt: salt as unknown as BufferSource, info: info as unknown as BufferSource },
+    { name: "HKDF", hash: "SHA-256", salt: salt as BufferSource, info: info as BufferSource },
     key,
     length * 8,
   );

@@ -40,8 +40,8 @@ interface ImportModeProps {
   error: string | null;
   notice: string | null;
   onPinChange: (v: string) => void;
-  onImport: (file: File, onSuccess?: () => void) => Promise<void> | void;
-  onImported: () => void;
+  onImport: (file: File, onSuccess?: (usedPin: string) => void) => Promise<void> | void;
+  onImported: (usedPin: string) => void;
 }
 
 export function ImportMode({ pin, error, notice, onPinChange, onImport, onImported }: ImportModeProps) {

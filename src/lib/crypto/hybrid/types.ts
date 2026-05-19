@@ -1,6 +1,8 @@
 export const HYBRID_VERSION = 1 as const;
 export const HYBRID_ALG = "X25519-HKDF-SHA256-AES-256-GCM" as const;
 
+export type EncodingFormat = "json" | "base58" | "emoji";
+
 export type HybridRecipient = {
   kid: string;
   salt: string;

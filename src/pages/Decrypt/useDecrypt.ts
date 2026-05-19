@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { decodePayload, decryptForRecipient, parseEnvelope, pickMatchingKid } from '../../lib/crypto/hybrid';
+import { decodePayload, decryptForRecipient, parseAnyEnvelope, pickMatchingKid } from '../../lib/crypto/hybrid';
 import { useKeyVaultStore } from '../../lib/state/keyVaultStore';
 
 export function useDecrypt() {
@@ -15,7 +15,7 @@ export function useDecrypt() {
   const { keys, privateKeyByPub, isUnlocked, loadKeys, unlockVault, lockVault } = useKeyVaultStore();
 
   useEffect(() => {
-    loadKeys().catch(() => undefined);
+    loadKeys().catch((err) => console.error('加载密钥失败', err));
   }, [loadKeys]);
 
   const handleUnlock = useCallback(async () => {
@@ -47,7 +47,7 @@ export function useDecrypt() {
     if (!envelopeText.trim()) { setError('请粘贴密文 JSON'); return; }
     try {
       setIsBusy(true);
-      const envelope = parseEnvelope(envelopeText);
+      const envelope = parseAnyEnvelope(envelopeText);
       const kid = pickMatchingKid(envelope, Object.keys(privateKeyByPub));
       if (!kid) throw new Error('密文中没有匹配本地密钥的接收者');
       const privateKey = privateKeyByPub[kid];
@@ -66,7 +66,7 @@ export function useDecrypt() {
 
   const handleCopy = useCallback(async () => {
     if (!resultText) return;
-    await navigator.clipboard.writeText(resultText);
+    await navigator.clipboard.writeText(resultText).catch(() => undefined);
   }, [resultText]);
 
   return {

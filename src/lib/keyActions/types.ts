@@ -17,3 +17,14 @@ export interface KeyActionDeps {
   setConfirmPin: (v: string) => void;
   unlockVault: (pin: string) => Promise<void>;
 }
+
+export interface KeyGenerateResult {
+  handleGenerate: () => Promise<void>;
+  handleCopy: (label: string, value: string) => Promise<void>;
+  generatedMnemonic: string | null;
+}
+
+export interface KeyMnemonicResult {
+  handleRecoverFromMnemonic: (mnemonic: string) => Promise<void>;
+  mnemonicError: string | null;
+}

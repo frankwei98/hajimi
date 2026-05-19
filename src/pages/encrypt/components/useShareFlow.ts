@@ -14,24 +14,28 @@ interface UseShareFlowReturn {
 export function useShareFlow(
   shareUrl: string | null,
   isSharing: boolean,
-  onShare: (token: string) => void,
+  onShare: (token: string, expiryHours: number | null) => void,
+  expiryHours: number | null,
 ): UseShareFlowReturn {
   const [showRaw, setShowRaw] = useState(false);
   const [token, setToken] = useState<string | null>(null);
   const [isShareInitiated, setIsShareInitiated] = useState(false);
   const turnstileRef = useRef<TurnstileInstance>(null);
+  const shareTriggered = useRef(false);
 
   useEffect(() => {
-    if (isShareInitiated && token && !isSharing && !shareUrl) {
-      onShare(token);
+    if (isShareInitiated && token && !isSharing && !shareUrl && !shareTriggered.current) {
+      shareTriggered.current = true;
+      onShare(token, expiryHours);
     }
-  }, [token, isShareInitiated, isSharing, shareUrl, onShare]);
+  }, [token, isShareInitiated, isSharing, shareUrl, onShare, expiryHours]);
 
   const handleShareClick = () => {
-    setIsShareInitiated(true);
-    if (!token) {
+    if (isShareInitiated && !token) {
       turnstileRef.current?.reset();
     }
+    if (!isSharing) shareTriggered.current = false;
+    setIsShareInitiated(true);
   };
 
   return { token, isShareInitiated, turnstileRef, showRaw, setShowRaw, handleShareClick, setToken };

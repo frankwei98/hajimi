@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../src/lib/crypto/x25519', () => ({
   decodeBech32PublicKey: (kid: string) => Uint8Array.from([kid.charCodeAt(0)]),
+  isHajimiPublicKey: () => true,
 }));
 
 import {

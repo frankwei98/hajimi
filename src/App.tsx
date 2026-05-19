@@ -5,6 +5,8 @@ import { Encrypt } from './pages/Encrypt';
 import { Decrypt } from './pages/Decrypt';
 import { KeyCenter } from './pages/KeyCenter';
 import { Message } from './pages/Message';
+import { Register } from './pages/Register';
+import { UserProfile } from './pages/UserProfile';
 
 function App() {
   return (
@@ -16,6 +18,8 @@ function App() {
           <Route path="decrypt" element={<Decrypt />} />
           <Route path="my" element={<KeyCenter />} />
           <Route path="m/:messageId" element={<Message />} />
+          <Route path="register" element={<Register />} />
+          <Route path="u/:userHandle" element={<UserProfile />} />
         </Route>
       </Routes>
     </Router>

@@ -11,10 +11,21 @@ interface ShareLinkSectionProps {
   handleShareClick: () => void;
   setToken: (v: string | null) => void;
   onCopyShareUrl: () => void;
+  expiryHours: number | null;
+  onExpiryHoursChange: (hours: number | null) => void;
 }
+
+const EXPIRY_OPTIONS: { label: string; hours: number | null }[] = [
+  { label: '1 小时', hours: 1 },
+  { label: '24 小时', hours: 24 },
+  { label: '7 天', hours: 168 },
+  { label: '30 天', hours: 720 },
+  { label: '永不过期', hours: null },
+];
 
 export function ShareLinkSection({
   shareUrl, isSharing, isShareInitiated, token, turnstileRef, handleShareClick, setToken, onCopyShareUrl,
+  expiryHours, onExpiryHoursChange,
 }: ShareLinkSectionProps) {
   return (
     <div>
@@ -25,7 +36,22 @@ export function ShareLinkSection({
         </h4>
       </div>
       {!shareUrl ? (
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
+        <div className="bg-white rounded-lg border border-gray-200 p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-500">过期时间：</span>
+            <div className="flex rounded-md border border-gray-300 overflow-hidden">
+              {EXPIRY_OPTIONS.map((opt) => (
+                <button
+                  key={opt.label}
+                  type="button"
+                  onClick={() => onExpiryHoursChange(opt.hours)}
+                  className={`px-2 py-1 text-xs font-medium transition-colors ${expiryHours === opt.hours ? 'bg-gray-900 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
             <div className="text-sm text-gray-600">
               生成一个一次性链接，发送给接收者。

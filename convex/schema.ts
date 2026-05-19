@@ -22,5 +22,28 @@ export default defineSchema({
         }),
       ),
     }),
-  }),
+    removeAt: v.optional(v.number()),
+  }).index("by_removeAt", ["removeAt"]),
+
+  /**
+   * user 用户身份表：handle + 公钥
+   */
+  user: defineTable({
+    handle: v.string(),
+    publicKeyBech32: v.string(),
+    avatarUrl: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("by_handle", ["handle"])
+    .index("by_public_key", ["publicKeyBech32"]),
+
+  /**
+   * revocation 密钥吊销公告板
+   */
+  revocation: defineTable({
+    kid: v.string(),
+    reason: v.optional(v.string()),
+    revokedAt: v.number(),
+  })
+    .index("by_kid", ["kid"]),
 });

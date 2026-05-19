@@ -12,8 +12,8 @@ type KeyCenterOnboardingProps = {
   onPinChange: (value: string) => void;
   onConfirmPinChange: (value: string) => void;
   onCreate: () => void;
-  onImport: (file: File, onSuccess?: () => void) => Promise<void> | void;
-  onImported: () => void;
+  onImport: (file: File, onSuccess?: (usedPin: string) => void) => Promise<void> | void;
+  onImported: (usedPin: string) => void;
 };
 
 export function KeyCenterOnboarding({

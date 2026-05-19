@@ -26,7 +26,7 @@ export function DecryptedContent({ decryptedData, matchedKid }: DecryptedContent
           匹配密钥: <span className="font-mono text-gray-500">{matchedKid}</span>
         </div>
         <button
-          onClick={() => navigator.clipboard.writeText(decryptedData.content || decryptedData.raw)}
+          onClick={() => navigator.clipboard.writeText(decryptedData.content || decryptedData.raw).catch(() => undefined)}
           className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-900 hover:text-black transition-colors"
         >
           <Copy className="w-4 h-4" />复制解密内容
@@ -70,7 +70,7 @@ export function CopyCiphertextButton({ message }: CopyCiphertextButtonProps) {
           if (key.startsWith('_')) return undefined;
           return value;
         }, 2);
-        navigator.clipboard.writeText(cleanData);
+        navigator.clipboard.writeText(cleanData).catch(() => undefined);
       }}
     >
       复制密文 JSON

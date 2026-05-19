@@ -8,9 +8,11 @@ export function KeyCenter() {
   const {
     isGenerating, error, notice, copiedField, pin, newPin, confirmPin,
     revealedKeys, initMode, keys, isLoaded, isUnlocked, keysCountLabel,
+    generatedMnemonic, mnemonicError,
     setPin, setNewPin, setConfirmPin, setInitMode, handleUnlock, handleGenerate,
     handleCopy, handleToggleReveal, handleDelete, handleExport, handleImport,
     handleInitCreate, handlePinChange, setRevealedKeys, setError, setNotice,
+    handleRecoverFromMnemonic, handleUpdateIdentity,
   } = useKeyCenter();
 
   const { unlockVault } = useKeyVaultStore();
@@ -26,7 +28,7 @@ export function KeyCenter() {
           initMode={initMode} pin={pin} confirmPin={confirmPin} error={error} notice={notice}
           onModeChange={(mode) => { setInitMode(mode); setPin(''); setConfirmPin(''); setError(null); setNotice(null); }}
           onPinChange={setPin} onConfirmPinChange={setConfirmPin} onCreate={handleInitCreate}
-          onImport={handleImport} onImported={() => { void unlockVault(pin); }}
+          onImport={handleImport} onImported={(usedPin) => { void unlockVault(usedPin); }}
         />
       );
     }
@@ -37,10 +39,12 @@ export function KeyCenter() {
     <KeyCenterDashboard
       pin={pin} keysCountLabel={keysCountLabel} isGenerating={isGenerating} notice={notice} error={error}
       keys={keys} copiedField={copiedField} revealedKeys={revealedKeys} newPin={newPin} confirmPin={confirmPin}
+      generatedMnemonic={generatedMnemonic} mnemonicError={mnemonicError}
       onPinChange={setPin} onGenerate={handleGenerate} onExport={handleExport} onImport={(file) => handleImport(file)}
       onCopy={handleCopy} onToggleReveal={handleToggleReveal} onDelete={(entryId) => void handleDelete(entryId)}
       onHideRevealed={() => setRevealedKeys({})} onNewPinChange={setNewPin} onConfirmPinChange={setConfirmPin}
-      onPinUpdate={handlePinChange}
+      onPinUpdate={handlePinChange} onRecoverFromMnemonic={handleRecoverFromMnemonic}
+      onUpdateIdentity={handleUpdateIdentity}
     />
   );
 }

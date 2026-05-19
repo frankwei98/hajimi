@@ -11,7 +11,7 @@ async function deriveAesKey(passphrase: string, salt: Uint8Array, iterations: nu
     ["deriveKey"],
   );
   return crypto.subtle.deriveKey(
-    { name: "PBKDF2", salt: salt as unknown as BufferSource, iterations, hash: "SHA-256" },
+    { name: "PBKDF2", salt: salt as BufferSource, iterations, hash: "SHA-256" },
     baseKey,
     { name: "AES-GCM", length: 256 },
     false,
@@ -24,9 +24,9 @@ export async function encryptPrivateKey(privateKeyBytes: Uint8Array, passphrase:
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const key = await deriveAesKey(passphrase, salt, KDF_ITERATIONS);
   const ciphertext = await crypto.subtle.encrypt(
-    { name: "AES-GCM", iv: iv as unknown as BufferSource },
+    { name: "AES-GCM", iv: iv as BufferSource },
     key,
-    privateKeyBytes as unknown as BufferSource,
+    privateKeyBytes as BufferSource,
   );
   return {
     encryptedPrivateKey: bytesToBase64(new Uint8Array(ciphertext)),
@@ -41,9 +41,9 @@ export async function decryptPrivateKey(entry: StoredKey, passphrase: string) {
   const salt = base64ToBytes(entry.salt);
   const key = await deriveAesKey(passphrase, salt, entry.kdfIterations);
   const plaintext = await crypto.subtle.decrypt(
-    { name: "AES-GCM", iv: iv as unknown as BufferSource },
+    { name: "AES-GCM", iv: iv as BufferSource },
     key,
-    base64ToBytes(entry.encryptedPrivateKey) as unknown as BufferSource,
+    base64ToBytes(entry.encryptedPrivateKey) as BufferSource,
   );
   return new Uint8Array(plaintext);
 }

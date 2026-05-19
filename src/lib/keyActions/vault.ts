@@ -1,5 +1,5 @@
 import { encryptExportPayload, decryptExportPayload, EXPORT_VERSION } from '../crypto/keyVault';
-import { putKeys } from '../storage/keyStore';
+import { putKeys, listKeys } from '../storage/keyStore';
 import type { StoredKey } from '../storage/types';
 import type { KeyActionDeps } from './types';
 
@@ -28,23 +28,24 @@ export function useKeyVaultActions(deps: KeyActionDeps) {
     }
   };
 
-  const handleImport = async (file: File, onSuccess?: () => void) => {
+  const handleImport = async (file: File, onSuccess?: (usedPin: string) => void) => {
     if (!/^\d{6}$/.test(pin)) { setError('请输入 6 位数字 PIN 以导入'); return; }
     setError(null);
     setNotice(null);
     try {
       const parsed = JSON.parse(await file.text()) as { version: number; kdfIterations: number; salt: string; iv: string; data: string };
-      if (parsed.version !== EXPORT_VERSION) throw new Error(`不支持的密钥包版本：${parsed.version}，当前支持版本 ${EXPORT_VERSION}`);
+      if (parsed.version !== EXPORT_VERSION) throw new Error(`不支持的密钥包版本：${parsed.version}，当前支持的版本 ${EXPORT_VERSION}`);
       const decrypted = await decryptExportPayload(parsed, pin);
       if (!Array.isArray(decrypted.keys)) throw new Error('无效的密钥包');
-      const existing = new Map(keys.map((e) => [e.publicKeyBech32, e]));
+      const dbEntries = await listKeys();
+      const existing = new Map(dbEntries.map((e) => [e.publicKeyBech32, e]));
       const incoming: StoredKey[] = decrypted.keys
         .filter((e) => e?.publicKeyBech32 && e?.encryptedPrivateKey)
         .filter((e) => !existing.has(e.publicKeyBech32))
         .map((e) => ({ ...e, id: crypto.randomUUID() }));
       if (incoming.length === 0) {
         setNotice('没有可导入的新密钥');
-        if (keys.length === 0 && onSuccess) onSuccess();
+        if (keys.length === 0 && onSuccess) onSuccess(pin);
         return;
       }
       await putKeys(incoming);
@@ -52,9 +53,9 @@ export function useKeyVaultActions(deps: KeyActionDeps) {
       setKeys(merged);
       if (isUnlocked) await unlockVault(pin);
       setNotice(`已导入 ${incoming.length} 把密钥`);
-      onSuccess?.();
-    } catch {
-      setError('导入失败或 PIN 错误');
+      onSuccess?.(pin);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '导入失败或 PIN 错误');
     }
   };
 

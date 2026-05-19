@@ -10,6 +10,7 @@ const leftNavItems: NavItem[] = [
 ];
 
 const rightNavItems: NavItem[] = [
+  { path: '/register', label: '注册', icon: Key },
   { path: '/my', label: '密钥中心', icon: Key },
 ];
 

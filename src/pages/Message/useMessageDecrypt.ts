@@ -16,7 +16,7 @@ export function useMessageDecrypt() {
   const { isLoaded, isUnlocked, privateKeyByPub, loadKeys } = useKeyVaultStore();
 
   useEffect(() => {
-    loadKeys().catch(() => undefined);
+    loadKeys().catch((err) => console.error('加载密钥失败', err));
   }, [loadKeys]);
 
   const message = useQuery(api.messages.getMessage, {

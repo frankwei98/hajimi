@@ -1,28 +1,33 @@
 import type { StoredKey } from './types';
+import { DB_NAME, DB_VERSION } from './constants';
 
-const DB_NAME = 'hajimi';
-const DB_VERSION = 2;
 const STORE_NAME = 'keys';
 
 let dbInstance: IDBDatabase | null = null;
 
-function openDb(): Promise<IDBDatabase> {
+export async function openDb(): Promise<IDBDatabase> {
   if (dbInstance) {
     return Promise.resolve(dbInstance);
   }
   
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
-    request.onupgradeneeded = () => {
-      const db = request.result;
+    request.onupgradeneeded = (event) => {
+      const db = (event.target as IDBOpenDBRequest).result;
+      const tx = (event.target as IDBOpenDBRequest).transaction!;
       if (!db.objectStoreNames.contains(STORE_NAME)) {
         const store = db.createObjectStore(STORE_NAME, { keyPath: 'id' });
         store.createIndex('publicKeyBech32', 'publicKeyBech32', { unique: false });
       } else {
-        const store = request.transaction?.objectStore(STORE_NAME);
-        if (store && !store.indexNames.contains('publicKeyBech32')) {
+        const store = tx.objectStore(STORE_NAME);
+        if (!store.indexNames.contains('publicKeyBech32')) {
           store.createIndex('publicKeyBech32', 'publicKeyBech32', { unique: false });
         }
+      }
+      if (!db.objectStoreNames.contains('contacts')) {
+        const contactStore = db.createObjectStore('contacts', { keyPath: 'id' });
+        contactStore.createIndex('publicKeyBech32', 'publicKeyBech32', { unique: true });
+        contactStore.createIndex('handle', 'handle', { unique: false });
       }
     };
     request.onsuccess = () => {
@@ -57,6 +62,10 @@ export async function addKey(entry: StoredKey): Promise<void> {
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error ?? new Error('写入密钥失败'));
   });
+}
+
+export async function updateKey(entry: StoredKey): Promise<void> {
+  return addKey(entry);
 }
 
 export async function putKeys(entries: StoredKey[]): Promise<void> {

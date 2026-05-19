@@ -7,9 +7,9 @@ export async function encryptExportPayload(payload: object, passphrase: string) 
   const key = await deriveAesKey(passphrase, salt, KDF_ITERATIONS);
   const plaintext = new TextEncoder().encode(JSON.stringify(payload));
   const ciphertext = await crypto.subtle.encrypt(
-    { name: "AES-GCM", iv: iv as unknown as BufferSource },
+    { name: "AES-GCM", iv: iv as BufferSource },
     key,
-    plaintext as unknown as BufferSource,
+    plaintext as BufferSource,
   );
   return {
     version: EXPORT_VERSION,
@@ -28,9 +28,9 @@ export async function decryptExportPayload(
   const salt = base64ToBytes(packageData.salt);
   const key = await deriveAesKey(passphrase, salt, packageData.kdfIterations);
   const plaintext = await crypto.subtle.decrypt(
-    { name: "AES-GCM", iv },
+    { name: "AES-GCM", iv: iv as BufferSource },
     key,
-    base64ToBytes(packageData.data),
+    base64ToBytes(packageData.data) as BufferSource,
   );
   const decoded = new TextDecoder().decode(plaintext);
   return JSON.parse(decoded) as { keys: StoredKey[]; exportedAt: string; version: number };
@@ -40,7 +40,7 @@ async function deriveAesKey(passphrase: string, salt: Uint8Array, iterations: nu
   const encoder = new TextEncoder();
   const baseKey = await crypto.subtle.importKey("raw", encoder.encode(passphrase), "PBKDF2", false, ["deriveKey"]);
   return crypto.subtle.deriveKey(
-    { name: "PBKDF2", salt: salt as unknown as BufferSource, iterations, hash: "SHA-256" },
+    { name: "PBKDF2", salt: salt as BufferSource, iterations, hash: "SHA-256" },
     baseKey,
     { name: "AES-GCM", length: 256 },
     false,

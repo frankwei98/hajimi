@@ -2,16 +2,22 @@ import { Send, Check } from 'lucide-react';
 import { useShareFlow } from './useShareFlow';
 import { ShareLinkSection } from './ShareLinkSection';
 import { CopySection } from './CopySection';
+import { OutputFormatSelector } from './OutputFormatSelector';
+import type { EncodingFormat } from '../../../lib/crypto/hybrid/types';
 
 interface EncryptOutputPanelProps {
   output: string;
   onCopy: () => void;
-  onShare: (captchaToken: string) => void;
+  onShare: (captchaToken: string, removeAt: number | null) => void;
   onEncrypt: () => void;
   onCopyShareUrl: () => void;
   isEncrypting: boolean;
   isSharing: boolean;
   shareUrl: string | null;
+  outputFormat: EncodingFormat;
+  onOutputFormatChange: (format: EncodingFormat) => void;
+  expiryHours: number | null;
+  onExpiryHoursChange: (hours: number | null) => void;
 }
 
 function OutputResult({
@@ -21,9 +27,11 @@ function OutputResult({
   onCopyShareUrl,
   isSharing,
   shareUrl,
-}: Omit<EncryptOutputPanelProps, 'onEncrypt' | 'isEncrypting'>) {
+  expiryHours,
+  onExpiryHoursChange,
+}: Omit<EncryptOutputPanelProps, 'onEncrypt' | 'isEncrypting' | 'outputFormat' | 'onOutputFormatChange'>) {
   const { token, isShareInitiated, turnstileRef, showRaw, setShowRaw, handleShareClick, setToken } =
-    useShareFlow(shareUrl, isSharing, onShare);
+    useShareFlow(shareUrl, isSharing, onShare, expiryHours);
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-2">
@@ -47,6 +55,8 @@ function OutputResult({
           handleShareClick={handleShareClick}
           setToken={setToken}
           onCopyShareUrl={onCopyShareUrl}
+          expiryHours={expiryHours}
+          onExpiryHoursChange={onExpiryHoursChange}
         />
 
         <div className="border-t border-gray-100" />
@@ -59,13 +69,15 @@ function OutputResult({
 
 export function EncryptOutputPanel({
   output, onCopy, onShare, onEncrypt, onCopyShareUrl, isEncrypting, isSharing, shareUrl,
+  outputFormat, onOutputFormatChange, expiryHours, onExpiryHoursChange,
 }: EncryptOutputPanelProps) {
   return (
     <div className="space-y-6">
       {output && (
-        <OutputResult key={output} output={output} onCopy={onCopy} onShare={onShare} onCopyShareUrl={onCopyShareUrl} isSharing={isSharing} shareUrl={shareUrl} />
+        <OutputResult key={output} output={output} onCopy={onCopy} onShare={onShare} onCopyShareUrl={onCopyShareUrl} isSharing={isSharing} shareUrl={shareUrl} expiryHours={expiryHours} onExpiryHoursChange={onExpiryHoursChange} />
       )}
-      <div className="pt-2 flex justify-end">
+      <div className="pt-2 flex items-center justify-between">
+        <OutputFormatSelector format={outputFormat} onChange={onOutputFormatChange} />
         <button type="button" className={`inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black transition-all disabled:opacity-60 disabled:cursor-not-allowed active:scale-[0.98] ${output ? 'bg-gray-800 hover:bg-black' : 'bg-black hover:bg-gray-800'}`} onClick={onEncrypt} disabled={isEncrypting || isSharing}>
           <Send className="w-5 h-5 mr-2" />
           {isEncrypting ? '加密中...' : (output ? '重新生成消息' : '生成加密消息')}

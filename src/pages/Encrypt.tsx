@@ -22,6 +22,11 @@ export function Encrypt() {
     keys,
     recipientCount,
     formatWarning,
+    outputFormat,
+    setOutputFormat,
+    contacts,
+    expiryHours,
+    setExpiryHours,
     handleTitleChange,
     handleContentChange,
     toggleRecipient,
@@ -46,6 +51,7 @@ export function Encrypt() {
 
           <RecipientKeyPicker
             keys={keys}
+            contacts={contacts}
             selectedRecipients={selectedRecipients}
             onToggle={toggleRecipient}
           />
@@ -70,6 +76,10 @@ export function Encrypt() {
             isEncrypting={isEncrypting}
             isSharing={isSharing}
             shareUrl={shareUrl}
+            outputFormat={outputFormat}
+            onOutputFormatChange={setOutputFormat}
+            expiryHours={expiryHours}
+            onExpiryHoursChange={setExpiryHours}
           />
         </div>
       </div>
