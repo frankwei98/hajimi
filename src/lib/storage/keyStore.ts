@@ -17,11 +17,11 @@ export async function openDb(): Promise<IDBDatabase> {
       const tx = (event.target as IDBOpenDBRequest).transaction!;
       if (!db.objectStoreNames.contains(STORE_NAME)) {
         const store = db.createObjectStore(STORE_NAME, { keyPath: 'id' });
-        store.createIndex('publicKeyBech32', 'publicKeyBech32', { unique: false });
+        store.createIndex('publicKeyBech32', 'publicKeyBech32', { unique: true });
       } else {
         const store = tx.objectStore(STORE_NAME);
         if (!store.indexNames.contains('publicKeyBech32')) {
-          store.createIndex('publicKeyBech32', 'publicKeyBech32', { unique: false });
+          store.createIndex('publicKeyBech32', 'publicKeyBech32', { unique: true });
         }
       }
       if (!db.objectStoreNames.contains('contacts')) {
@@ -32,6 +32,10 @@ export async function openDb(): Promise<IDBDatabase> {
     };
     request.onsuccess = () => {
       dbInstance = request.result;
+      dbInstance.onversionchange = () => {
+        dbInstance?.close();
+        dbInstance = null;
+      };
       resolve(dbInstance);
     };
     request.onerror = () => reject(request.error ?? new Error('IndexedDB 打开失败'));
