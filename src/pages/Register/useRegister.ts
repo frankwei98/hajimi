@@ -1,6 +1,7 @@
-import { useState, useCallback } from 'react';
-import { useMutation } from 'convex/react';
+import { useState, useCallback, useRef } from 'react';
+import { useAction } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
+import type { TurnstileInstance } from '@marsidev/react-turnstile';
 import { generateMnemonicWords, mnemonicToKeyPair } from '../../lib/crypto/mnemonic';
 import { encryptPrivateKey, toHex } from '../../lib/crypto/keyVault';
 import { addKey } from '../../lib/storage/keyStore';
@@ -16,7 +17,8 @@ export function useRegister() {
   const [notice, setNotice] = useState<string | null>(null);
   const [isBusy, setIsBusy] = useState(false);
 
-  const registerUser = useMutation(api.users.registerUser);
+  const registerUser = useAction(api.users.registerUser);
+  const turnstileRef = useRef<TurnstileInstance | null>(null);
   const { setKeys, setPrivateKey } = useKeyVaultStore();
 
   const handleRegister = useCallback(async () => {
@@ -53,7 +55,9 @@ export function useRegister() {
       await addKey(entry);
       setKeys(prev => [entry, ...prev]);
       setPrivateKey(entry.publicKeyBech32, keyPair.privateKeyBytes);
-      await registerUser({ handle, publicKeyBech32: keyPair.publicKeyBech32 });
+      const token = turnstileRef.current?.getResponse();
+      if (!token) throw new Error('请完成人机验证');
+      await registerUser({ handle, publicKeyBech32: keyPair.publicKeyBech32, token });
       setMnemonic(mnemonicWords);
       setNotice('注册成功！请妥善保存助记词');
     } catch (err) {
@@ -65,6 +69,6 @@ export function useRegister() {
 
   return {
     handle, setHandle, pin, setPin, confirmPin, setConfirmPin,
-    mnemonic, error, notice, isBusy, handleRegister,
+    mnemonic, error, notice, isBusy, handleRegister, turnstileRef,
   };
 }
