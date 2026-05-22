@@ -82,17 +82,28 @@ export const getMessage = query({
   },
 });
 
+const MIN_EXPIRY_MS = 60 * 60 * 1000; // 1 hour
+const MAX_EXPIRY_MS = 365 * 24 * 60 * 60 * 1000; // 1 year
+
 export const iUploadMessage = internalMutation({
   args: {
     message: msgObj,
     removeAt: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const newMessageId = await ctx.db.insert("message", {
+    if (args.removeAt != null) {
+      const now = Date.now();
+      if (args.removeAt < now + MIN_EXPIRY_MS) {
+        throw new Error("过期时间不能早于 1 小时后");
+      }
+      if (args.removeAt > now + MAX_EXPIRY_MS) {
+        throw new Error("过期时间不能超过 1 年");
+      }
+    }
+    return await ctx.db.insert("message", {
       body: args.message.body,
       removeAt: args.removeAt,
     });
-    return newMessageId;
   },
 });
 
