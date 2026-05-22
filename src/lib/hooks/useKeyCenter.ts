@@ -39,6 +39,10 @@ export function useKeyCenter() {
     loadKeys().catch(() => setError('读取本地密钥失败'));
   }, [loadKeys]);
 
+  useEffect(() => {
+    if (!isUnlocked) setRevealedKeys({});
+  }, [isUnlocked]);
+
   const keysCountLabel = useMemo(() => {
     if (keys.length === 0) return '暂无密钥';
     return `已保存 ${keys.length} 把密钥`;
