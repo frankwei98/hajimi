@@ -77,9 +77,9 @@ function KeyRow({ entry, copiedField, onCopy, onToggleReveal, onDelete, revealed
       <td className="px-4 py-3">
         <div className="flex items-center gap-2">
           {isRevoked && <AlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0" />}
-          <div onClick={() => onCopy(`pub-${entry.id}`, entry.publicKeyBech32)} className="break-all font-mono text-gray-900 cursor-pointer hover:text-black transition-colors" title="点击复制">
+          <button type="button" onClick={() => onCopy(`pub-${entry.id}`, entry.publicKeyBech32)} className="break-all font-mono text-gray-900 cursor-pointer hover:text-black transition-colors text-left" title="点击复制">
             {entry.publicKeyBech32}
-          </div>
+          </button>
           <button type="button" onClick={() => onCopy(`pub-${entry.id}`, entry.publicKeyBech32)} className="flex-shrink-0 p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors" title="复制公钥">
             {copiedField === `pub-${entry.id}` ? <Check className="h-3.5 w-3.5 text-black" /> : <Copy className="h-3.5 w-3.5" />}
           </button>
