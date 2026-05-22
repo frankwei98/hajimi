@@ -33,7 +33,6 @@ export const useKeyVaultStore = create<KeyVaultState>((set, get) => ({
       : set({ keys: entriesOrFn }),
   setPrivateKey: (kid, key) =>
     set((state) => ({
-      isUnlocked: true,
       privateKeyByPub: { ...state.privateKeyByPub, [kid]: key },
     })),
   removePrivateKey: (kid) =>
