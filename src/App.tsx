@@ -7,6 +7,7 @@ import { KeyCenter } from './pages/KeyCenter';
 import { Message } from './pages/Message';
 import { Register } from './pages/Register';
 import { UserProfile } from './pages/UserProfile';
+import { NotFound } from './pages/NotFound';
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
           <Route path="m/:messageId" element={<Message />} />
           <Route path="register" element={<Register />} />
           <Route path="u/:userHandle" element={<UserProfile />} />
+          <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
     </Router>
