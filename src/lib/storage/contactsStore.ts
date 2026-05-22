@@ -34,7 +34,10 @@ export async function deleteContact(contactId: string): Promise<void> {
     const tx = db.transaction(STORE_NAME, 'readwrite');
     const store = tx.objectStore(STORE_NAME);
     store.delete(contactId);
-    tx.oncomplete = () => resolve();
+    tx.oncomplete = () => {
+      window.dispatchEvent(new CustomEvent('hajimi:contactsChanged'));
+      resolve();
+    };
     tx.onerror = () => reject(tx.error ?? new Error('删除联系人失败'));
   });
 }
