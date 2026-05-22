@@ -68,7 +68,7 @@ describe('vault key encryption/decryption', () => {
 
   it('fails when encryptedPrivateKey is corrupted', async () => {
     const privateKey = crypto.getRandomValues(new Uint8Array(32));
-    const encrypted = await encryptPrivateKey(privateKey, 'pin');
+    const encrypted = await encryptPrivateKey(privateKey, 'test');
 
     const storedKey: StoredKey = {
       id: 'test-key',
@@ -82,12 +82,12 @@ describe('vault key encryption/decryption', () => {
       createdAt: new Date().toISOString(),
     };
 
-    await expect(decryptPrivateKey(storedKey, 'pin')).rejects.toThrow();
+    await expect(decryptPrivateKey(storedKey, 'test')).rejects.toThrow();
   });
 
   it('fails when iv is corrupted', async () => {
     const privateKey = crypto.getRandomValues(new Uint8Array(32));
-    const encrypted = await encryptPrivateKey(privateKey, 'pin');
+    const encrypted = await encryptPrivateKey(privateKey, 'test');
 
     const storedKey: StoredKey = {
       id: 'test-key',
@@ -101,12 +101,12 @@ describe('vault key encryption/decryption', () => {
       createdAt: new Date().toISOString(),
     };
 
-    await expect(decryptPrivateKey(storedKey, 'pin')).rejects.toThrow();
+    await expect(decryptPrivateKey(storedKey, 'test')).rejects.toThrow();
   });
 
   it('fails when salt is corrupted', async () => {
     const privateKey = crypto.getRandomValues(new Uint8Array(32));
-    const encrypted = await encryptPrivateKey(privateKey, 'pin');
+    const encrypted = await encryptPrivateKey(privateKey, 'test');
 
     const storedKey: StoredKey = {
       id: 'test-key',
@@ -120,7 +120,7 @@ describe('vault key encryption/decryption', () => {
       createdAt: new Date().toISOString(),
     };
 
-    await expect(decryptPrivateKey(storedKey, 'pin')).rejects.toThrow();
+    await expect(decryptPrivateKey(storedKey, 'test')).rejects.toThrow();
   });
 });
 
