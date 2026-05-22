@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { generateMnemonicWords, mnemonicToKeyPair } from '../crypto/mnemonic';
-import { encryptPrivateKey, toHex } from '../crypto/keyVault';
+import { encryptPrivateKey, isValidPin, toHex } from '../crypto/keyVault';
 import { addKey } from '../storage/keyStore';
 import type { StoredKey } from '../storage/types';
 import { useKeyVaultStore } from '../state/keyVaultStore';
@@ -14,7 +14,7 @@ export function useKeyGenerate(deps: KeyActionDeps): KeyGenerateResult {
   useEffect(() => () => clearTimeout(copyTimerRef.current), []);
 
   const handleGenerate = useCallback(async () => {
-    if (!/^\d{6}$/.test(pin)) {
+    if (!isValidPin(pin)) {
       setError('请设置 6 位数字 PIN 用于加密私钥');
       return;
     }

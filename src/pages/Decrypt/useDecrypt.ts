@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { decodePayload, decryptForRecipient, parseAnyEnvelope, pickMatchingKid } from '../../lib/crypto/hybrid';
+import { isValidPin } from '../../lib/crypto/keyVault';
 import { useKeyVaultStore } from '../../lib/state/keyVaultStore';
 
 export function useDecrypt() {
@@ -21,7 +22,7 @@ export function useDecrypt() {
   const handleUnlock = useCallback(async () => {
     setError(null);
     if (keys.length === 0) { setError('暂无密钥，请先在密钥中心创建'); return; }
-    if (pin.length < 6) { setError('请输入 6 位 PIN'); return; }
+    if (!isValidPin(pin)) { setError('请输入 6 位 PIN'); return; }
     try {
       setIsBusy(true);
       await unlockVault(pin);

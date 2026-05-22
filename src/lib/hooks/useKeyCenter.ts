@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { isValidPin } from '../crypto/keyVault';
 import { useKeyVaultStore } from '../state/keyVaultStore';
 import { useKeyGenerate, useKeyReveal, useKeyVaultActions, useKeyPinChange, useKeyMnemonic, useKeyIdentity } from '../keyActions';
 
@@ -49,7 +50,7 @@ export function useKeyCenter() {
   }, [keys.length]);
 
   const handleUnlock = async () => {
-    if (!/^\d{6}$/.test(pin)) {
+    if (!isValidPin(pin)) {
       setError('请输入 6 位 PIN 以解锁');
       return;
     }
@@ -63,7 +64,7 @@ export function useKeyCenter() {
   };
 
   const handleInitCreate = () => {
-    if (!/^\d{6}$/.test(pin)) {
+    if (!isValidPin(pin)) {
       setError('请设置 6 位数字 PIN');
       return;
     }

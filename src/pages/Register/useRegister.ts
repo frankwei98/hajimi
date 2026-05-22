@@ -3,7 +3,7 @@ import { useAction } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import type { TurnstileInstance } from '@marsidev/react-turnstile';
 import { generateMnemonicWords, mnemonicToKeyPair } from '../../lib/crypto/mnemonic';
-import { encryptPrivateKey, toHex } from '../../lib/crypto/keyVault';
+import { encryptPrivateKey, isValidPin, toHex } from '../../lib/crypto/keyVault';
 import { addKey } from '../../lib/storage/keyStore';
 import type { StoredKey } from '../../lib/storage/types';
 import { useKeyVaultStore } from '../../lib/state/keyVaultStore';
@@ -28,7 +28,7 @@ export function useRegister() {
       setError('Handle 格式不正确：仅允许字母、数字、下划线和连字符，长度 3-20');
       return;
     }
-    if (!/^\d{6}$/.test(pin)) {
+    if (!isValidPin(pin)) {
       setError('请设置 6 位数字 PIN');
       return;
     }
@@ -52,12 +52,12 @@ export function useRegister() {
         kdfIterations: encryption.kdfIterations,
         source: 'mnemonic',
       };
-      await addKey(entry);
-      setKeys(prev => [entry, ...prev]);
-      setPrivateKey(entry.publicKeyBech32, keyPair.privateKeyBytes);
       const token = turnstileRef.current?.getResponse();
       if (!token) throw new Error('请完成人机验证');
       await registerUser({ handle, publicKeyBech32: keyPair.publicKeyBech32, token });
+      await addKey(entry);
+      setKeys(prev => [entry, ...prev]);
+      setPrivateKey(entry.publicKeyBech32, keyPair.privateKeyBytes);
       setMnemonic(mnemonicWords);
       setNotice('注册成功！请妥善保存助记词');
     } catch (err) {
