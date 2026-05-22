@@ -19,9 +19,10 @@ export function useMessageDecrypt() {
     loadKeys().catch((err) => console.error('加载密钥失败', err));
   }, [loadKeys]);
 
-  const message = useQuery(api.messages.getMessage, {
-    messageId: messageId as Id<'message'>,
-  });
+  const message = useQuery(
+    api.messages.getMessage,
+    messageId ? { messageId: messageId as Id<'message'> } : 'skip',
+  );
 
   const handleDecrypt = useCallback(async () => {
     if (!message || !isUnlocked) return;
