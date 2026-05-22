@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { generateMnemonicWords, mnemonicToKeyPair } from '../crypto/mnemonic';
 import { encryptPrivateKey, toHex } from '../crypto/keyVault';
 import { addKey } from '../storage/keyStore';
@@ -8,8 +8,10 @@ import type { KeyActionDeps, KeyGenerateResult } from './types';
 
 export function useKeyGenerate(deps: KeyActionDeps): KeyGenerateResult {
   const { setPrivateKey } = useKeyVaultStore();
-  const { pin, isUnlocked, setError, setNotice, setIsGenerating, setKeys } = deps;
+  const { pin, isUnlocked, setError, setNotice, setIsGenerating, setKeys, setCopiedField } = deps;
   const [generatedMnemonic, setGeneratedMnemonic] = useState<string | null>(null);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useEffect(() => () => clearTimeout(copyTimerRef.current), []);
 
   const handleGenerate = useCallback(async () => {
     if (!/^\d{6}$/.test(pin)) {
@@ -50,12 +52,13 @@ export function useKeyGenerate(deps: KeyActionDeps): KeyGenerateResult {
   const handleCopy = useCallback(async (label: string, value: string) => {
     try {
       await navigator.clipboard.writeText(value);
-      deps.setCopiedField(label);
-      setTimeout(() => deps.setCopiedField(null), 1200);
+      setCopiedField(label);
+      clearTimeout(copyTimerRef.current);
+      copyTimerRef.current = setTimeout(() => setCopiedField(null), 1200);
     } catch {
-      deps.setCopiedField(null);
+      setCopiedField(null);
     }
-  }, [deps.setCopiedField]);
+  }, [setCopiedField]);
 
   return { handleGenerate, handleCopy, generatedMnemonic };
 }
