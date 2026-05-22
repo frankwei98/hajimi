@@ -8,7 +8,7 @@ import type { KeyActionDeps, KeyGenerateResult } from './types';
 
 export function useKeyGenerate(deps: KeyActionDeps): KeyGenerateResult {
   const { setPrivateKey } = useKeyVaultStore();
-  const { pin, keys, isUnlocked, setError, setNotice, setIsGenerating, setKeys } = deps;
+  const { pin, isUnlocked, setError, setNotice, setIsGenerating, setKeys } = deps;
   const [generatedMnemonic, setGeneratedMnemonic] = useState<string | null>(null);
 
   const handleGenerate = useCallback(async () => {
@@ -36,8 +36,7 @@ export function useKeyGenerate(deps: KeyActionDeps): KeyGenerateResult {
         source: 'mnemonic',
       };
       await addKey(entry);
-      const next = [entry, ...keys];
-      setKeys(next);
+      setKeys(prev => [entry, ...prev]);
       if (isUnlocked) setPrivateKey(entry.publicKeyBech32, result.privateKeyBytes);
       setGeneratedMnemonic(mnemonic);
       setNotice('密钥已生成，请妥善保存助记词');
@@ -46,7 +45,7 @@ export function useKeyGenerate(deps: KeyActionDeps): KeyGenerateResult {
     } finally {
       setIsGenerating(false);
     }
-  }, [pin, keys, isUnlocked, setError, setNotice, setIsGenerating, setKeys, setPrivateKey]);
+  }, [pin, isUnlocked, setError, setNotice, setIsGenerating, setKeys, setPrivateKey]);
 
   const handleCopy = useCallback(async (label: string, value: string) => {
     try {

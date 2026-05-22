@@ -8,7 +8,7 @@ import type { KeyActionDeps, KeyMnemonicResult } from './types';
 
 export function useKeyMnemonic(deps: KeyActionDeps): KeyMnemonicResult {
   const { setPrivateKey } = useKeyVaultStore();
-  const { pin, keys, isUnlocked, setError, setNotice, setKeys } = deps;
+  const { pin, isUnlocked, setError, setNotice, setKeys } = deps;
   const [mnemonicError, setMnemonicError] = useState<string | null>(null);
 
   const handleRecoverFromMnemonic = useCallback(async (mnemonic: string) => {
@@ -44,14 +44,13 @@ export function useKeyMnemonic(deps: KeyActionDeps): KeyMnemonicResult {
         source: 'mnemonic',
       };
       await addKey(entry);
-      const next = [entry, ...keys];
-      setKeys(next);
+      setKeys(prev => [entry, ...prev]);
       if (isUnlocked) setPrivateKey(entry.publicKeyBech32, result.privateKeyBytes);
       setNotice('助记词恢复成功');
     } catch (err) {
       setMnemonicError(err instanceof Error ? err.message : '恢复失败');
     }
-  }, [pin, keys, isUnlocked, setError, setNotice, setKeys, setPrivateKey]);
+  }, [pin, isUnlocked, setError, setNotice, setKeys, setPrivateKey]);
 
   return { handleRecoverFromMnemonic, mnemonicError };
 }

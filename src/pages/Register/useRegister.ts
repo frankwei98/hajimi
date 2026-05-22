@@ -17,7 +17,7 @@ export function useRegister() {
   const [isBusy, setIsBusy] = useState(false);
 
   const registerUser = useMutation(api.users.registerUser);
-  const { keys, setKeys, setPrivateKey } = useKeyVaultStore();
+  const { setKeys, setPrivateKey } = useKeyVaultStore();
 
   const handleRegister = useCallback(async () => {
     setError(null);
@@ -51,7 +51,7 @@ export function useRegister() {
         source: 'mnemonic',
       };
       await addKey(entry);
-      setKeys([entry, ...keys]);
+      setKeys(prev => [entry, ...prev]);
       setPrivateKey(entry.publicKeyBech32, keyPair.privateKeyBytes);
       await registerUser({ handle, publicKeyBech32: keyPair.publicKeyBech32 });
       setMnemonic(mnemonicWords);
@@ -61,7 +61,7 @@ export function useRegister() {
     } finally {
       setIsBusy(false);
     }
-  }, [handle, pin, confirmPin, keys, registerUser, setKeys, setPrivateKey]);
+  }, [handle, pin, confirmPin, registerUser, setKeys, setPrivateKey]);
 
   return {
     handle, setHandle, pin, setPin, confirmPin, setConfirmPin,
