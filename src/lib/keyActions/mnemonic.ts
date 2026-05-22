@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { mnemonicToKeyPair, validateMnemonicWords } from '../crypto/mnemonic';
-import { encryptPrivateKey, toHex } from '../crypto/keyVault';
+import { encryptPrivateKey, isValidPin, toHex } from '../crypto/keyVault';
 import { addKey, getKeyByPublicKey } from '../storage/keyStore';
 import type { StoredKey } from '../storage/types';
 import { useKeyVaultStore } from '../state/keyVaultStore';
@@ -12,7 +12,7 @@ export function useKeyMnemonic(deps: KeyActionDeps): KeyMnemonicResult {
   const [mnemonicError, setMnemonicError] = useState<string | null>(null);
 
   const handleRecoverFromMnemonic = useCallback(async (mnemonic: string) => {
-    if (!/^\d{6}$/.test(pin)) {
+    if (!isValidPin(pin)) {
       setMnemonicError('请设置 6 位数字 PIN 用于加密私钥');
       return;
     }

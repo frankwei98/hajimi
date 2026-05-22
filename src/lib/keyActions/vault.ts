@@ -1,4 +1,4 @@
-import { encryptExportPayload, decryptExportPayload, EXPORT_VERSION } from '../crypto/keyVault';
+import { encryptExportPayload, decryptExportPayload, EXPORT_VERSION, isValidPin } from '../crypto/keyVault';
 import { putKeys, listKeys } from '../storage/keyStore';
 import type { StoredKey } from '../storage/types';
 import type { KeyActionDeps } from './types';
@@ -7,7 +7,7 @@ export function useKeyVaultActions(deps: KeyActionDeps) {
   const { pin, keys, isUnlocked, setError, setNotice, setKeys, unlockVault } = deps;
 
   const handleExport = async () => {
-    if (!/^\d{6}$/.test(pin)) { setError('请输入 6 位数字 PIN 以导出'); return; }
+    if (!isValidPin(pin)) { setError('请输入 6 位数字 PIN 以导出'); return; }
     if (keys.length === 0) { setError('没有可导出的密钥'); return; }
     setError(null);
     setNotice(null);
@@ -29,7 +29,7 @@ export function useKeyVaultActions(deps: KeyActionDeps) {
   };
 
   const handleImport = async (file: File, onSuccess?: (usedPin: string) => void) => {
-    if (!/^\d{6}$/.test(pin)) { setError('请输入 6 位数字 PIN 以导入'); return; }
+    if (!isValidPin(pin)) { setError('请输入 6 位数字 PIN 以导入'); return; }
     setError(null);
     setNotice(null);
     try {

@@ -1,11 +1,10 @@
 import { KDF_ITERATIONS, bytesToBase64, base64ToBytes } from "./constants";
+import { isValidPin } from "./pin";
 import type { StoredKey } from "../../storage/types";
 
-const MIN_PIN_LENGTH = 4;
-
 function validatePin(pin: string): void {
-  if (pin.length < MIN_PIN_LENGTH) {
-    throw new Error(`PIN 必须至少 ${MIN_PIN_LENGTH} 位`);
+  if (!isValidPin(pin)) {
+    throw new Error("PIN 必须为 6 位数字");
   }
 }
 

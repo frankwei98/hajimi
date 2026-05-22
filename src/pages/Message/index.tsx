@@ -1,5 +1,6 @@
 import { Loader2, AlertCircle, ShieldCheck, Lock, Unlock } from 'lucide-react';
 import { useState } from 'react';
+import { isValidPin } from '../../lib/crypto/keyVault';
 import { useKeyVaultStore } from '../../lib/state/keyVaultStore';
 import { KeyCenterUnlock } from '../key-center/KeyCenterUnlock';
 import { useMessageDecrypt } from './useMessageDecrypt';
@@ -14,7 +15,7 @@ export function Message() {
 
   const handleUnlock = async () => {
     setUnlockError(null);
-    if (pin.length < 6) { setUnlockError('请输入 6 位 PIN'); return; }
+    if (!isValidPin(pin)) { setUnlockError('请输入 6 位 PIN'); return; }
     try { await unlockVault(pin); } catch (err) { setUnlockError(err instanceof Error ? err.message : '解锁失败'); }
   };
 
