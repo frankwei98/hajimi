@@ -49,8 +49,7 @@ export function useKeyVaultActions(deps: KeyActionDeps) {
         return;
       }
       await putKeys(incoming);
-      const merged = [...incoming, ...keys].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-      setKeys(merged);
+      setKeys(prev => [...incoming, ...prev].sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
       if (isUnlocked) await unlockVault(pin);
       setNotice(`已导入 ${incoming.length} 把密钥`);
       onSuccess?.(pin);

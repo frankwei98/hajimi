@@ -11,7 +11,7 @@ export interface KeyActionDeps {
   setNotice: (v: string | null) => void;
   setCopiedField: (v: string | null) => void;
   setIsGenerating: (v: boolean) => void;
-  setKeys: (keys: StoredKey[]) => void;
+  setKeys: (entriesOrFn: StoredKey[] | ((prev: StoredKey[]) => StoredKey[])) => void;
   setRevealedKeys: (v: Record<string, string> | ((prev: Record<string, string>) => Record<string, string>)) => void;
   setNewPin: (v: string) => void;
   setConfirmPin: (v: string) => void;

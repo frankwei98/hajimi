@@ -32,7 +32,7 @@ export function useKeyReveal(deps: KeyActionDeps) {
     try {
       const entry = keys.find((item) => item.id === entryId);
       await deleteKey(entryId);
-      setKeys(keys.filter((item) => item.id !== entryId));
+      setKeys(prev => prev.filter((item) => item.id !== entryId));
       setRevealedKeys((prev) => { const next = { ...prev }; delete next[entryId]; return next; });
       if (entry) removePrivateKey(entry.publicKeyBech32);
       deps.setNotice('已删除');

@@ -9,7 +9,7 @@ type KeyVaultState = {
   isUnlocked: boolean;
   privateKeyByPub: Record<string, Uint8Array>;
   loadKeys: () => Promise<void>;
-  setKeys: (entries: StoredKey[]) => void;
+  setKeys: (entriesOrFn: StoredKey[] | ((prev: StoredKey[]) => StoredKey[])) => void;
   setPrivateKey: (kid: string, key: Uint8Array) => void;
   removePrivateKey: (kid: string) => void;
   setUnlocked: (value: boolean) => void;
@@ -27,7 +27,10 @@ export const useKeyVaultStore = create<KeyVaultState>((set, get) => ({
     const sorted = [...entries].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     set({ keys: sorted, isLoaded: true });
   },
-  setKeys: (entries) => set({ keys: entries }),
+  setKeys: (entriesOrFn) =>
+    typeof entriesOrFn === 'function'
+      ? set((state) => ({ keys: entriesOrFn(state.keys) }))
+      : set({ keys: entriesOrFn }),
   setPrivateKey: (kid, key) =>
     set((state) => ({
       isUnlocked: true,
