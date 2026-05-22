@@ -17,7 +17,7 @@ export function UserProfile() {
     if (user?.publicKeyBech32) {
       getContactByPublicKey(user.publicKeyBech32).then((c: Contact | null) => {
         if (c) setIsAdded(true);
-      }).catch(() => undefined);
+      }).catch((err) => console.warn('检查联系人状态失败', err));
     }
   }, [user]);
 
