@@ -1,5 +1,10 @@
 import type { StoredKey } from '../storage/types';
 
+/**
+ * Shared deps injected into all key action hooks from useKeyCenter.
+ * Consider splitting into per-hook interfaces (GenerateDeps, RevealDeps, etc.)
+ * if any hook starts requiring fields the others don't use.
+ */
 export interface KeyActionDeps {
   pin: string;
   newPin: string;
