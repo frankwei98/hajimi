@@ -1,15 +1,20 @@
-import { StrictMode } from 'react'
+import { StrictMode, type ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 import { ConvexProvider, ConvexReactClient } from "convex/react";
 
-const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
+const convexUrl = import.meta.env.VITE_CONVEX_URL;
+const convex = convexUrl ? new ConvexReactClient(convexUrl) : null;
+
+function MaybeConvexProvider({ children }: { children: ReactNode }) {
+  return convex ? <ConvexProvider client={convex}>{children}</ConvexProvider> : <>{children}</>;
+}
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <ConvexProvider client={convex}>
+    <MaybeConvexProvider>
       <App />
-    </ConvexProvider>
+    </MaybeConvexProvider>
   </StrictMode>,
 )
