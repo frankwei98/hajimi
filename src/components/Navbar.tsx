@@ -1,4 +1,4 @@
-import { Home, Lock, Key, Menu, X, Unlock } from 'lucide-react';
+import { Home, Lock, Key, Menu, X, Unlock, Zap } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { NavItemLink, MobileNavItem, type NavItem } from './NavItem';
@@ -7,6 +7,7 @@ const leftNavItems: NavItem[] = [
   { path: '/', label: '首页', icon: Home },
   { path: '/encrypt', label: '加密工坊', icon: Lock },
   { path: '/decrypt', label: '解密工坊', icon: Unlock },
+  { path: '/instant', label: '即用即走', icon: Zap },
 ];
 
 const rightNavItems: NavItem[] = [
