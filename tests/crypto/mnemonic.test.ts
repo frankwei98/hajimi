@@ -61,6 +61,9 @@ describe('mnemonic to keypair', () => {
     expect(kp1.publicKeyBytes).toEqual(kp2.publicKeyBytes);
     expect(kp1.privateKeyBytes).toEqual(kp2.privateKeyBytes);
     expect(kp1.publicKeyBech32).toBe(kp2.publicKeyBech32);
+    expect(kp1.publicSigningKeyBytes).toEqual(kp2.publicSigningKeyBytes);
+    expect(kp1.privateSigningKeyBytes).toEqual(kp2.privateSigningKeyBytes);
+    expect(kp1.publicSigningKeyBech32).toBe(kp2.publicSigningKeyBech32);
   });
 
   it('produces valid bech32 public key', async () => {
@@ -69,6 +72,9 @@ describe('mnemonic to keypair', () => {
     expect(kp.publicKeyBech32).toMatch(new RegExp(`^${PUBLIC_KEY_PREFIX}1`));
     expect(kp.publicKeyBytes).toHaveLength(32);
     expect(kp.privateKeyBytes).toHaveLength(32);
+    expect(kp.publicSigningKeyBytes).toHaveLength(32);
+    expect(kp.privateSigningKeyBytes).toHaveLength(32);
+    expect(kp.publicSigningKeyBech32).toMatch(/^hajimisig1/);
   });
 
   it('different mnemonics produce different keypairs', async () => {

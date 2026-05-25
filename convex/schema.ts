@@ -21,6 +21,11 @@ export default defineSchema({
           encCEK: v.string(),
         }),
       ),
+      sender: v.optional(v.object({
+        kid: v.string(),
+        publicSigningKeyBech32: v.string(),
+        signature: v.string(),
+      })),
     }),
     removeAt: v.optional(v.number()),
   }).index("by_removeAt", ["removeAt"]),
@@ -31,17 +36,21 @@ export default defineSchema({
   user: defineTable({
     handle: v.string(),
     publicKeyBech32: v.string(),
+    publicSigningKeyBech32: v.string(),
     avatarUrl: v.optional(v.string()),
     createdAt: v.number(),
   })
     .index("by_handle", ["handle"])
-    .index("by_public_key", ["publicKeyBech32"]),
+    .index("by_public_key", ["publicKeyBech32"])
+    .index("by_signing_key", ["publicSigningKeyBech32"]),
 
   /**
    * revocation 密钥吊销公告板
    */
   revocation: defineTable({
     kid: v.string(),
+    publicSigningKeyBech32: v.string(),
+    signature: v.string(),
     reason: v.optional(v.string()),
     revokedAt: v.number(),
   })

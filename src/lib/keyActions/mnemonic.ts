@@ -7,7 +7,7 @@ import { useKeyVaultStore } from '../state/keyVaultStore';
 import type { KeyActionDeps, KeyMnemonicResult } from './types';
 
 export function useKeyMnemonic(deps: KeyActionDeps): KeyMnemonicResult {
-  const { setPrivateKey } = useKeyVaultStore();
+  const { setPrivateKey, setSigningPrivateKey } = useKeyVaultStore();
   const { pin, isUnlocked, setError, setNotice, setKeys } = deps;
   const [mnemonicError, setMnemonicError] = useState<string | null>(null);
 
@@ -32,25 +32,35 @@ export function useKeyMnemonic(deps: KeyActionDeps): KeyMnemonicResult {
         return;
       }
       const encryption = await encryptPrivateKey(result.privateKeyBytes, pin);
+      const signingEncryption = await encryptPrivateKey(result.privateSigningKeyBytes, pin);
       const entry: StoredKey = {
         id: crypto.randomUUID(),
         createdAt: new Date().toISOString(),
         publicKeyBech32: result.publicKeyBech32,
         publicKeyHex: toHex(result.publicKeyBytes),
+        publicSigningKeyBech32: result.publicSigningKeyBech32,
+        publicSigningKeyHex: toHex(result.publicSigningKeyBytes),
         encryptedPrivateKey: encryption.encryptedPrivateKey,
+        encryptedSigningPrivateKey: signingEncryption.encryptedPrivateKey,
         iv: encryption.iv,
         salt: encryption.salt,
+        signingIv: signingEncryption.iv,
+        signingSalt: signingEncryption.salt,
+        signingKdfIterations: signingEncryption.kdfIterations,
         kdfIterations: encryption.kdfIterations,
         source: 'mnemonic',
       };
       await addKey(entry);
       setKeys(prev => [entry, ...prev]);
-      if (isUnlocked) setPrivateKey(entry.publicKeyBech32, result.privateKeyBytes);
+      if (isUnlocked) {
+        setPrivateKey(entry.publicKeyBech32, result.privateKeyBytes);
+        setSigningPrivateKey(entry.publicKeyBech32, result.privateSigningKeyBytes);
+      }
       setNotice('助记词恢复成功');
     } catch (err) {
       setMnemonicError(err instanceof Error ? err.message : '恢复失败');
     }
-  }, [pin, isUnlocked, setError, setNotice, setKeys, setPrivateKey]);
+  }, [pin, isUnlocked, setError, setNotice, setKeys, setPrivateKey, setSigningPrivateKey]);
 
   return { handleRecoverFromMnemonic, mnemonicError };
 }

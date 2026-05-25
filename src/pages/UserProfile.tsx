@@ -1,17 +1,42 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { addContact, getContactByPublicKey } from '../lib/storage/contactsStore';
 import type { Contact } from '../lib/storage/types';
+import { hasBackend, requireBackend } from '../lib/backend/convexClient';
+
+type ProfileUser = {
+  handle: string;
+  publicKeyBech32: string;
+  publicSigningKeyBech32?: string;
+  avatarUrl?: string;
+  createdAt: number;
+};
 
 export function UserProfile() {
   const { userHandle } = useParams<{ userHandle: string }>();
   const [isAdded, setIsAdded] = useState(false);
   const [addNotice, setAddNotice] = useState<string | null>(null);
   const [addError, setAddError] = useState<string | null>(null);
+  const [user, setUser] = useState<ProfileUser | null | undefined>(hasBackend ? undefined : null);
 
-  const user = useQuery(api.users.getUserByHandle, { handle: userHandle ?? '' });
+  useEffect(() => {
+    if (!userHandle || !hasBackend) {
+      return;
+    }
+    let cancelled = false;
+    requireBackend()
+      .query(api.users.getUserByHandle, { handle: userHandle })
+      .then((result) => {
+        if (!cancelled) setUser(result as ProfileUser | null);
+      })
+      .catch(() => {
+        if (!cancelled) setUser(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [userHandle]);
 
   useEffect(() => {
     if (user?.publicKeyBech32) {
@@ -37,6 +62,7 @@ export function UserProfile() {
   }, [user]);
 
   if (!userHandle) return <div className="text-center text-gray-500 p-12">无效的用户地址</div>;
+  if (!hasBackend) return <div className="text-center text-gray-500 p-12">未配置后端地址，用户主页不可用</div>;
   if (user === undefined) return <div className="text-center text-gray-500 p-12">正在加载...</div>;
   if (user === null) return (
     <div className="max-w-lg mx-auto">

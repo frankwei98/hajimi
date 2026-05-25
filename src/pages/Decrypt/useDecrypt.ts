@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { decodePayload, decryptForRecipient, parseAnyEnvelope, pickMatchingKid } from '../../lib/crypto/hybrid';
 import { isValidPin } from '../../lib/crypto/keyVault';
+import { verifyEnvelopeSender } from '../../lib/crypto/signing';
 import { useKeyVaultStore } from '../../lib/state/keyVaultStore';
 
 export function useDecrypt() {
@@ -49,6 +50,9 @@ export function useDecrypt() {
     try {
       setIsBusy(true);
       const envelope = parseAnyEnvelope(envelopeText);
+      if (envelope.sender && !verifyEnvelopeSender(envelope)) {
+        throw new Error('发送者签名验证失败');
+      }
       const kid = pickMatchingKid(envelope, Object.keys(privateKeyByPub));
       if (!kid) throw new Error('密文中没有匹配本地密钥的接收者');
       const privateKey = privateKeyByPub[kid];

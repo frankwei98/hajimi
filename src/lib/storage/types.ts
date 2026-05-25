@@ -5,9 +5,15 @@ export type StoredKey = {
   createdAt: string;
   publicKeyBech32: string;
   publicKeyHex: string;
+  publicSigningKeyBech32?: string;
+  publicSigningKeyHex?: string;
   encryptedPrivateKey: string;
+  encryptedSigningPrivateKey?: string;
   iv: string;
   salt: string;
+  signingIv?: string;
+  signingSalt?: string;
+  signingKdfIterations?: number;
   kdfIterations: number;
   source: X25519Keypair['source'] | 'mnemonic';
   label?: string;

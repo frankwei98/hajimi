@@ -26,6 +26,7 @@ export function base58ToBytes(input: string): Uint8Array {
     if (idx < 0) throw new Error('无效的 Base58 字符');
     num = num * base + BigInt(idx);
   }
+  if (num === 0n) return new Uint8Array(zeros);
   let hex = num.toString(16);
   if (hex.length % 2 !== 0) hex = '0' + hex;
   const bytes = new Uint8Array(zeros + hex.length / 2);

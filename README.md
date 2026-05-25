@@ -90,9 +90,19 @@
 
 -   **Crypto:** [noble-curves](https://github.com/paulmillr/noble-curves) (High-audit cryptographic primitives)
 
+-   **Identity:** X25519 用于加密，Ed25519 用于注册、吊销等身份签名证明。
+
 -   **Storage:** IndexedDB (Local) + Cloudflare Worker + Supabase (Optional for Link Mode)
 
 🛡 安全声明
 -------
 
 没有绝对的安全，本项目开源，所以请不要相信我，相信自己，如果有疑虑这里是开放审查代码和自行部署。有问题也希望能及时反馈/提PR，谢谢。
+
+当前安全模型：
+
+- 消息加密使用 X25519-HKDF-SHA256-AES-256-GCM。后端只保存密文，不接触明文。
+- 如果发送者本地密钥库已解锁，生成密文时会附带 Ed25519 envelope 签名；解密端会验证该签名，防止带签名消息被篡改或冒充。
+- 身份证明使用独立 Ed25519 签名密钥。注册 Handle 和发布密钥吊销时，后端会验证签名，防止抢注公钥和恶意吊销别人的密钥。
+- 6 位 PIN 是低摩擦本地保护方案，用来避免普通误触或轻量本机窥探；如果攻击者拿到 IndexedDB 或导出密钥包，6 位 PIN 不应被视为强抗离线破解口令。高风险用户应使用更强设备保护、单独加密备份，或自行修改为高熵口令策略。
+- 无 `VITE_CONVEX_URL` 时，本地密钥管理、短密文加密和手动解密仍可使用；注册、用户主页、长文分享、吊销公告等联网功能不可用。

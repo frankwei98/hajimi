@@ -7,7 +7,7 @@ import { useKeyVaultStore } from '../state/keyVaultStore';
 import type { KeyActionDeps, KeyGenerateResult } from './types';
 
 export function useKeyGenerate(deps: KeyActionDeps): KeyGenerateResult {
-  const { setPrivateKey } = useKeyVaultStore();
+  const { setPrivateKey, setSigningPrivateKey } = useKeyVaultStore();
   const { pin, isUnlocked, setError, setNotice, setIsGenerating, setKeys, setCopiedField } = deps;
   const [generatedMnemonic, setGeneratedMnemonic] = useState<string | null>(null);
   const copyTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -26,20 +26,30 @@ export function useKeyGenerate(deps: KeyActionDeps): KeyGenerateResult {
       const mnemonic = await generateMnemonicWords();
       const result = await mnemonicToKeyPair(mnemonic);
       const encryption = await encryptPrivateKey(result.privateKeyBytes, pin);
+      const signingEncryption = await encryptPrivateKey(result.privateSigningKeyBytes, pin);
       const entry: StoredKey = {
         id: crypto.randomUUID(),
         createdAt: new Date().toISOString(),
         publicKeyBech32: result.publicKeyBech32,
         publicKeyHex: toHex(result.publicKeyBytes),
+        publicSigningKeyBech32: result.publicSigningKeyBech32,
+        publicSigningKeyHex: toHex(result.publicSigningKeyBytes),
         encryptedPrivateKey: encryption.encryptedPrivateKey,
+        encryptedSigningPrivateKey: signingEncryption.encryptedPrivateKey,
         iv: encryption.iv,
         salt: encryption.salt,
+        signingIv: signingEncryption.iv,
+        signingSalt: signingEncryption.salt,
+        signingKdfIterations: signingEncryption.kdfIterations,
         kdfIterations: encryption.kdfIterations,
         source: 'mnemonic',
       };
       await addKey(entry);
       setKeys(prev => [entry, ...prev]);
-      if (isUnlocked) setPrivateKey(entry.publicKeyBech32, result.privateKeyBytes);
+      if (isUnlocked) {
+        setPrivateKey(entry.publicKeyBech32, result.privateKeyBytes);
+        setSigningPrivateKey(entry.publicKeyBech32, result.privateSigningKeyBytes);
+      }
       setGeneratedMnemonic(mnemonic);
       setNotice('密钥已生成，请妥善保存助记词');
     } catch (err) {
@@ -47,7 +57,7 @@ export function useKeyGenerate(deps: KeyActionDeps): KeyGenerateResult {
     } finally {
       setIsGenerating(false);
     }
-  }, [pin, isUnlocked, setError, setNotice, setIsGenerating, setKeys, setPrivateKey]);
+  }, [pin, isUnlocked, setError, setNotice, setIsGenerating, setKeys, setPrivateKey, setSigningPrivateKey]);
 
   const handleCopy = useCallback(async (label: string, value: string) => {
     try {

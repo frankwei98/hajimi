@@ -72,6 +72,13 @@ describe('base58 encoding', () => {
     expect(decoded).toEqual(original);
   });
 
+  it('round-trips all-zero bytes', () => {
+    const original = new Uint8Array([0, 0, 0]);
+    const encoded = bytesToBase58(original);
+    expect(encoded).toBe('111');
+    expect(base58ToBytes(encoded)).toEqual(original);
+  });
+
   it('handles empty input', () => {
     expect(bytesToBase58(new Uint8Array(0))).toBe('');
     expect(base58ToBytes('')).toEqual(new Uint8Array(0));

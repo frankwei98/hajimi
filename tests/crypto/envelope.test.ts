@@ -79,23 +79,31 @@ describe('parseEnvelope', () => {
     expect(() => parseEnvelope(bad)).toThrow('缺少 epk');
   });
 
-  it('rejects recipient with empty salt', () => {
-    const bad = JSON.stringify({ v: 1, alg: 'X25519-HKDF-SHA256-AES-256-GCM', epk: 'a', nonce: 'b', ciphertext: 'c', recipients: [{ kid: 'k', salt: '', wrapNonce: 'w', encCEK: 'e' }] });
+  it('rejects recipient with empty salt', async () => {
+    const recipient = makeRecipient();
+    const envelope = await encryptForRecipients(new TextEncoder().encode('test'), [{ kid: recipient.kid, publicKeyBytes: recipient.publicKey }]);
+    const bad = JSON.stringify({ ...envelope, recipients: [{ ...envelope.recipients[0], salt: '' }] });
     expect(() => parseEnvelope(bad)).toThrow('salt 缺失');
   });
 
-  it('rejects recipient with empty wrapNonce', () => {
-    const bad = JSON.stringify({ v: 1, alg: 'X25519-HKDF-SHA256-AES-256-GCM', epk: 'a', nonce: 'b', ciphertext: 'c', recipients: [{ kid: 'k', salt: 's', wrapNonce: '', encCEK: 'e' }] });
+  it('rejects recipient with empty wrapNonce', async () => {
+    const recipient = makeRecipient();
+    const envelope = await encryptForRecipients(new TextEncoder().encode('test'), [{ kid: recipient.kid, publicKeyBytes: recipient.publicKey }]);
+    const bad = JSON.stringify({ ...envelope, recipients: [{ ...envelope.recipients[0], wrapNonce: '' }] });
     expect(() => parseEnvelope(bad)).toThrow('wrapNonce 缺失');
   });
 
-  it('rejects recipient with empty encCEK', () => {
-    const bad = JSON.stringify({ v: 1, alg: 'X25519-HKDF-SHA256-AES-256-GCM', epk: 'a', nonce: 'b', ciphertext: 'c', recipients: [{ kid: 'k', salt: 's', wrapNonce: 'w', encCEK: '' }] });
+  it('rejects recipient with empty encCEK', async () => {
+    const recipient = makeRecipient();
+    const envelope = await encryptForRecipients(new TextEncoder().encode('test'), [{ kid: recipient.kid, publicKeyBytes: recipient.publicKey }]);
+    const bad = JSON.stringify({ ...envelope, recipients: [{ ...envelope.recipients[0], encCEK: '' }] });
     expect(() => parseEnvelope(bad)).toThrow('encCEK 缺失');
   });
 
-  it('rejects recipient with empty kid', () => {
-    const bad = JSON.stringify({ v: 1, alg: 'X25519-HKDF-SHA256-AES-256-GCM', epk: 'a', nonce: 'b', ciphertext: 'c', recipients: [{ kid: '', salt: 's', wrapNonce: 'w', encCEK: 'e' }] });
+  it('rejects recipient with empty kid', async () => {
+    const recipient = makeRecipient();
+    const envelope = await encryptForRecipients(new TextEncoder().encode('test'), [{ kid: recipient.kid, publicKeyBytes: recipient.publicKey }]);
+    const bad = JSON.stringify({ ...envelope, recipients: [{ ...envelope.recipients[0], kid: '' }] });
     expect(() => parseEnvelope(bad)).toThrow('kid 缺失');
   });
 

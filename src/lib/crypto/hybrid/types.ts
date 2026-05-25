@@ -10,6 +10,12 @@ export type HybridRecipient = {
   encCEK: string;
 };
 
+export type HybridSender = {
+  kid: string;
+  publicSigningKeyBech32: string;
+  signature: string;
+};
+
 export type HybridEnvelope = {
   v: typeof HYBRID_VERSION;
   alg: typeof HYBRID_ALG;
@@ -17,4 +23,5 @@ export type HybridEnvelope = {
   nonce: string;
   ciphertext: string;
   recipients: HybridRecipient[];
+  sender?: HybridSender;
 };

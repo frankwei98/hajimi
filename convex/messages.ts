@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import type { TurnstileServerValidationResponse } from "@marsidev/react-turnstile";
 import type { Id } from "./_generated/dataModel";
+import { assertValidMessageBody } from "./envelope";
 
 declare const process: { env: Record<string, string | undefined> };
 
@@ -53,6 +54,11 @@ const msgObj = v.object({
         encCEK: v.string(),
       }),
     ),
+    sender: v.optional(v.object({
+      kid: v.string(),
+      publicSigningKeyBech32: v.string(),
+      signature: v.string(),
+    })),
   }),
 });
 
@@ -63,6 +69,7 @@ export const uploadMessage = action({
     if (!isVerifiedReq) {
       throw new Error("Invalid captcha token");
     }
+    assertValidMessageBody(args.message.body);
     const res: Id<"message"> = await ctx.runMutation(
       internal.messages.iUploadMessage,
       {
@@ -91,6 +98,7 @@ export const iUploadMessage = internalMutation({
     removeAt: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    assertValidMessageBody(args.message.body);
     if (args.removeAt != null) {
       const now = Date.now();
       if (args.removeAt < now + MIN_EXPIRY_MS) {

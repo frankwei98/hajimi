@@ -64,7 +64,7 @@ export function Register() {
         {error && <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
         {notice && <div className="rounded-md border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">{notice}</div>}
 
-        <Turnstile ref={turnstileRef} siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY ?? ''} />
+        <Turnstile ref={turnstileRef} siteKey={import.meta.env.VITE_CF_TURNSTILE_KEY ?? ''} />
 
         <div className="flex items-center justify-between pt-2">
           <Link to="/" className="text-sm text-gray-500 hover:text-gray-700">返回首页</Link>

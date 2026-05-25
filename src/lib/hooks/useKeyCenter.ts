@@ -28,7 +28,7 @@ export function useKeyCenter() {
     pin, newPin, confirmPin, keys, isUnlocked, revealedKeys,
     setError, setNotice, setCopiedField, setIsGenerating,
     setKeys, setRevealedKeys, setNewPin, setConfirmPin, unlockVault,
-  }), [pin, newPin, confirmPin, keys, isUnlocked, revealedKeys, unlockVault]);
+  }), [pin, newPin, confirmPin, keys, isUnlocked, revealedKeys, setKeys, unlockVault]);
   const gen = useKeyGenerate(deps);
   const rev = useKeyReveal(deps);
   const vlt = useKeyVaultActions(deps);
@@ -41,8 +41,8 @@ export function useKeyCenter() {
   }, [loadKeys]);
 
   useEffect(() => {
-    if (!isUnlocked) setRevealedKeys({});
-  }, [isUnlocked]);
+    if (!isUnlocked) queueMicrotask(() => setRevealedKeys({}));
+  }, [isUnlocked, setRevealedKeys]);
 
   const keysCountLabel = useMemo(() => {
     if (keys.length === 0) return '暂无密钥';

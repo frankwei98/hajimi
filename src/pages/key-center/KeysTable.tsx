@@ -2,9 +2,11 @@ import { Check, Copy, AlertTriangle } from 'lucide-react';
 import type { StoredKey } from '../../lib/storage/types';
 import { IdentityPanel } from './IdentityPanel';
 import { useRevocationSet } from './useRevocationSet';
-import { useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { useCallback, useState } from 'react';
+import { buildRevocationPayload, signText } from '../../lib/crypto/signing';
+import { useKeyVaultStore } from '../../lib/state/keyVaultStore';
+import { requireBackend } from '../../lib/backend/convexClient';
 
 type KeysTableProps = {
   keys: StoredKey[];
@@ -18,21 +20,43 @@ type KeysTableProps = {
 
 export function KeysTable({ keys, copiedField, onCopy, onToggleReveal, onDelete, revealedKeys, onUpdateIdentity }: KeysTableProps) {
   const revokedKids = useRevocationSet();
-  const publishRevocation = useMutation(api.revocations.publishRevocation);
+  const { signingPrivateKeyByPub, isUnlocked } = useKeyVaultStore();
   const [revokingKid, setRevokingKid] = useState<string | null>(null);
   const [revokeError, setRevokeError] = useState<string | null>(null);
 
-  const handleRevoke = useCallback(async (kid: string) => {
+  const handleRevoke = useCallback(async (entry: StoredKey) => {
     setRevokeError(null);
-    setRevokingKid(kid);
+    if (!isUnlocked) {
+      setRevokeError('请先解锁密钥库再吊销密钥');
+      return;
+    }
+    if (!entry.publicSigningKeyBech32) {
+      setRevokeError('该密钥缺少签名身份，无法安全吊销');
+      return;
+    }
+    const privateSigningKey = signingPrivateKeyByPub[entry.publicKeyBech32];
+    if (!privateSigningKey) {
+      setRevokeError('找不到该密钥的签名私钥');
+      return;
+    }
+    const revokedAt = Date.now();
+    const reason = '用户主动吊销';
+    const payload = buildRevocationPayload(entry.publicKeyBech32, revokedAt, reason);
+    setRevokingKid(entry.publicKeyBech32);
     try {
-      await publishRevocation({ kid, reason: '用户主动吊销' });
+      await requireBackend().mutation(api.revocations.publishRevocation, {
+        kid: entry.publicKeyBech32,
+        publicSigningKeyBech32: entry.publicSigningKeyBech32,
+        revokedAt,
+        reason,
+        signature: signText(payload, privateSigningKey),
+      });
     } catch (err) {
       setRevokeError(err instanceof Error ? err.message : '吊销失败');
     } finally {
       setRevokingKid(null);
     }
-  }, [publishRevocation]);
+  }, [isUnlocked, signingPrivateKeyByPub]);
 
   if (keys.length === 0) {
     return (
@@ -67,7 +91,7 @@ export function KeysTable({ keys, copiedField, onCopy, onToggleReveal, onDelete,
   );
 }
 
-function KeyRow({ entry, copiedField, onCopy, onToggleReveal, onDelete, revealedKeys, onUpdateIdentity, isRevoked, onRevoke, isRevoking }: Omit<KeysTableProps, 'keys'> & { entry: StoredKey; isRevoked: boolean; onRevoke: (kid: string) => void; isRevoking: boolean }) {
+function KeyRow({ entry, copiedField, onCopy, onToggleReveal, onDelete, revealedKeys, onUpdateIdentity, isRevoked, onRevoke, isRevoking }: Omit<KeysTableProps, 'keys'> & { entry: StoredKey; isRevoked: boolean; onRevoke: (entry: StoredKey) => void; isRevoking: boolean }) {
   return (
     <tr className={isRevoked ? 'bg-red-50' : undefined}>
       <td className="px-4 py-3">
@@ -90,7 +114,11 @@ function KeyRow({ entry, copiedField, onCopy, onToggleReveal, onDelete, revealed
         <button type="button" onClick={() => onToggleReveal(entry)} className="text-xs font-medium text-gray-600 hover:text-black transition-colors">
           {revealedKeys[entry.id] ? '隐藏私钥' : '显示私钥'}
         </button>
-        {!isRevoked && <button type="button" onClick={() => onRevoke(entry.publicKeyBech32)} disabled={isRevoking} className="text-xs font-medium text-orange-600 hover:text-orange-700 disabled:opacity-60">{isRevoking ? '吊销中...' : '吊销'}</button>}
+        {!isRevoked && entry.publicSigningKeyBech32 && (
+          <button type="button" onClick={() => onRevoke(entry)} disabled={isRevoking} className="text-xs font-medium text-orange-600 hover:text-orange-700 disabled:opacity-60">
+            {isRevoking ? '吊销中...' : '吊销'}
+          </button>
+        )}
         <button type="button" onClick={() => onDelete(entry.id)} className="text-xs font-medium text-red-600 hover:text-red-700">删除</button>
       </td>
     </tr>

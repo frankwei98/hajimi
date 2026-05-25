@@ -20,8 +20,7 @@ export function usePinInput(value: string, autoFocus?: boolean) {
       if (timeoutRef.current) window.clearTimeout(timeoutRef.current);
       timeoutRef.current = window.setTimeout(() => { setVisibleIndex(null); }, 1200);
     } else if (value.length < prevValueLength.current) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setVisibleIndex(null);
+      requestAnimationFrame(() => { setVisibleIndex(null); });
     }
     prevValueLength.current = value.length;
     return () => { if (timeoutRef.current) window.clearTimeout(timeoutRef.current); };

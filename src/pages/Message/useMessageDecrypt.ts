@@ -1,10 +1,13 @@
 import { useParams } from 'react-router-dom';
-import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import type { Id } from '../../../convex/_generated/dataModel';
 import { useEffect, useState, useCallback } from 'react';
 import { useKeyVaultStore } from '../../lib/state/keyVaultStore';
 import { parseEnvelope, decryptForRecipient, decodePayload, pickMatchingKid } from '../../lib/crypto/hybrid';
+import { hasBackend, requireBackend } from '../../lib/backend/convexClient';
+import { verifyEnvelopeSender } from '../../lib/crypto/signing';
+
+type StoredMessage = { body: unknown } & Record<string, unknown>;
 
 export function useMessageDecrypt() {
   const { messageId } = useParams();
@@ -12,6 +15,7 @@ export function useMessageDecrypt() {
   const [isDecrypting, setIsDecrypting] = useState(false);
   const [decryptedData, setDecryptedData] = useState<{ title?: string; content?: string; raw: string } | null>(null);
   const [matchedKid, setMatchedKid] = useState('');
+  const [message, setMessage] = useState<StoredMessage | null | undefined>(hasBackend ? undefined : null);
 
   const { isLoaded, isUnlocked, privateKeyByPub, loadKeys } = useKeyVaultStore();
 
@@ -19,10 +23,26 @@ export function useMessageDecrypt() {
     loadKeys().catch((err) => console.error('加载密钥失败', err));
   }, [loadKeys]);
 
-  const message = useQuery(
-    api.messages.getMessage,
-    messageId ? { messageId: messageId as Id<'message'> } : 'skip',
-  );
+  useEffect(() => {
+    if (!messageId || !hasBackend) {
+      return;
+    }
+    let cancelled = false;
+    requireBackend()
+      .query(api.messages.getMessage, { messageId: messageId as Id<'message'> })
+      .then((result) => {
+        if (!cancelled) setMessage(result as StoredMessage | null);
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setMessage(null);
+          setDecryptError(err instanceof Error ? err.message : '读取消息失败');
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [messageId]);
 
   const handleDecrypt = useCallback(async () => {
     if (!message || !isUnlocked) return;
@@ -36,6 +56,9 @@ export function useMessageDecrypt() {
       const envelope = parseEnvelope(cleanData);
       if (!envelope || !envelope.recipients) {
         throw new Error('密文数据格式非法：缺少 recipients 字段');
+      }
+      if (envelope.sender && !verifyEnvelopeSender(envelope)) {
+        throw new Error('发送者签名验证失败');
       }
       const kid = pickMatchingKid(envelope, Object.keys(privateKeyByPub));
       if (!kid) {
@@ -55,7 +78,9 @@ export function useMessageDecrypt() {
 
   useEffect(() => {
     if (isUnlocked && message && !decryptedData && !decryptError && !isDecrypting) {
-      handleDecrypt();
+      queueMicrotask(() => {
+        void handleDecrypt();
+      });
     }
   }, [isUnlocked, message, decryptedData, decryptError, isDecrypting, handleDecrypt]);
 

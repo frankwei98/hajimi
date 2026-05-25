@@ -17,7 +17,24 @@ export function useKeyPinChange(deps: KeyActionDeps) {
       for (const entry of keys) {
         const pk = await decryptPrivateKey(entry, pin);
         const enc = await encryptPrivateKey(pk, newPin);
-        updated.push({ ...entry, encryptedPrivateKey: enc.encryptedPrivateKey, iv: enc.iv, salt: enc.salt, kdfIterations: enc.kdfIterations });
+        let signingUpdates: Partial<StoredKey> = {};
+        if (entry.encryptedSigningPrivateKey) {
+          const signingPk = await decryptPrivateKey({
+            ...entry,
+            encryptedPrivateKey: entry.encryptedSigningPrivateKey,
+            iv: entry.signingIv ?? entry.iv,
+            salt: entry.signingSalt ?? entry.salt,
+            kdfIterations: entry.signingKdfIterations ?? entry.kdfIterations,
+          }, pin);
+          const signingEnc = await encryptPrivateKey(signingPk, newPin);
+          signingUpdates = {
+            encryptedSigningPrivateKey: signingEnc.encryptedPrivateKey,
+            signingIv: signingEnc.iv,
+            signingSalt: signingEnc.salt,
+            signingKdfIterations: signingEnc.kdfIterations,
+          };
+        }
+        updated.push({ ...entry, ...signingUpdates, encryptedPrivateKey: enc.encryptedPrivateKey, iv: enc.iv, salt: enc.salt, kdfIterations: enc.kdfIterations });
       }
       await putKeys(updated);
       setKeys(updated.sort((a, b) => b.createdAt.localeCompare(a.createdAt)));

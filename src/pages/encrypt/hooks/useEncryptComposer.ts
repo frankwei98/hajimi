@@ -3,6 +3,7 @@ import { useKeyVaultStore } from "../../../lib/state/keyVaultStore";
 import { decodeBech32PublicKey } from "../../../lib/crypto/x25519";
 import { encryptForRecipients, envelopeToTextWithFormat, type EncodingFormat } from "../../../lib/crypto/hybrid";
 import { utf8ToBytes } from "../../../lib/crypto/hybrid/encoding";
+import { signEnvelope } from "../../../lib/crypto/signing";
 import { parseRecipients, mergeRecipients, validateEncryptInput } from "../utils/recipients";
 import { TITLE_LIMIT, CONTENT_LIMIT } from "../constants";
 import { useShareAction } from "./useShareAction";
@@ -20,7 +21,7 @@ export function useEncryptComposer() {
   const [outputFormat, setOutputFormat] = useState<EncodingFormat>("json");
   const [expiryHours, setExpiryHours] = useState<number | null>(null);
 
-  const { keys, loadKeys } = useKeyVaultStore();
+  const { keys, loadKeys, isUnlocked, signingPrivateKeyByPub } = useKeyVaultStore();
   const { share: shareAction } = useShareAction();
   const { selectedRecipients, recipientCount, formatWarning, toggleRecipient, contacts } = useRecipientManager(recipientKeyText);
 
@@ -43,7 +44,16 @@ export function useEncryptComposer() {
       const payload = { title: title.trim(), content: content.trim(), createdAt: new Date().toISOString() };
       const plaintext = utf8ToBytes(JSON.stringify(payload));
       const envelope = await encryptForRecipients(plaintext, recipients);
-      setOutput(envelopeToTextWithFormat(envelope, outputFormat));
+      const senderKey = keys.find((entry) => entry.publicSigningKeyBech32 && signingPrivateKeyByPub[entry.publicKeyBech32]);
+      const signedEnvelope = isUnlocked && senderKey?.publicSigningKeyBech32
+        ? signEnvelope(
+          envelope,
+          senderKey.publicKeyBech32,
+          senderKey.publicSigningKeyBech32,
+          signingPrivateKeyByPub[senderKey.publicKeyBech32],
+        )
+        : envelope;
+      setOutput(envelopeToTextWithFormat(signedEnvelope, outputFormat));
     } catch (err) {
       setError(err instanceof Error ? err.message : "加密失败");
     } finally {
